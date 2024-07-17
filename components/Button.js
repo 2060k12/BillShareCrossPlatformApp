@@ -19,7 +19,7 @@ export function OutlinedButton({ children, onPress }) {
 
 const styles = StyleSheet.create({
   filledButtonuttonContainer: {
-    paddingVertical: 4,
+    paddingVertical: 10,
     paddingHorizontal: 16,
     backgroundColor: "black",
     marginVertical: 4,
@@ -33,7 +33,7 @@ const styles = StyleSheet.create({
     fontSize: 24,
   },
   outlinedButtonContainer: {
-    paddingVertical: 4,
+    paddingVertical: 10,
     paddingHorizontal: 16,
     marginVertical: 4,
     borderWidth: 1,
