@@ -1,5 +1,12 @@
 import { useContext, useState } from "react";
-import { Text, View, Alert, TextInput, StyleSheet } from "react-native";
+import {
+  Text,
+  View,
+  Alert,
+  TextInput,
+  StyleSheet,
+  SafeAreaView,
+} from "react-native";
 import { FilledButton, OutlinedButton } from "../components/Button";
 import { router } from "expo-router";
 import { AuthContext } from "../contexts/AuthContext";
@@ -9,10 +16,11 @@ import {
 } from "firebase/auth";
 import RegisterScreen from "./RegisterScreen.js";
 import InputField from "../components/InputField.js";
+import firebase from "firebase/compat/app";
 
 export default function LoginScreen() {
-  const [email, setEmail] = useState("");
-  const [password, setpassword] = useState("");
+  const [email, setEmail] = useState("iampranish@outlook.com");
+  const [password, setpassword] = useState("123456789");
 
   // state of register page
   const [registerPageView, setregisterPageView] = useState(false);
@@ -30,15 +38,16 @@ export default function LoginScreen() {
 
   function login(email, password) {
     try {
-      signInWithEmailAndPassword(auth, email, password).then((credencials) =>
-        console.log(credencials.user.email)
-      );
+      signInWithEmailAndPassword(auth, email, password).then((credencials) => {
+        console.log(credencials.user.email);
+        auth.setPersistence(firebase.auth.Auth.Persistence.LOCAL);
+      });
     } catch (e) {
       console.log(e);
     }
   }
   return (
-    <View>
+    <SafeAreaView>
       <Text>Login to Continue</Text>
       <View style={styles.buttonsContainer}>
         <InputField enteredText={email} onChangeText={(text) => setEmail(text)}>
@@ -56,8 +65,8 @@ export default function LoginScreen() {
       <View style={styles.buttonsContainer}>
         <FilledButton
           onPress={() => {
-            router.replace("(tabs)/profile");
-            // router.push("(tabs)/profile");
+            // router.replace("(tabs)/profile");
+            router.push("(tabs)/profile");
             login(email, password);
           }}
         >
@@ -74,7 +83,7 @@ export default function LoginScreen() {
           <RegisterScreen onPress={() => setregisterPageView(false)} />
         )}
       </View>
-    </View>
+    </SafeAreaView>
   );
 }
 

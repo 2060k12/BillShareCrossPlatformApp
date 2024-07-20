@@ -11,10 +11,15 @@ export default function _layout() {
 
   return (
     <AuthContext.Provider value={auth}>
-      <Stack>
-        <Stack.screen name="index" options={{ headerTitle: "Login" }} />
-        <Stack.screen name="login/login" />
-        <Stack.screen name="login/signUp" />
+      <Stack
+        screenOptions={{
+          headerShown: false,
+        }}
+      >
+        <Stack.Screen name="index" options={{ headerTitle: "Login" }} />
+        <Stack.Screen name="login/login" />
+        <Stack.Screen name="login/signUp" />
+        <Stack.Screen name="addExpensesDetails" />
       </Stack>
     </AuthContext.Provider>
   );
