@@ -1,50 +1,31 @@
 import { useContext, useEffect, useState } from "react";
-import { View, Text, FlatList } from "react-native";
+import { View, Text, FlatList, StyleSheet } from "react-native";
 import { FirestoreContext } from "../../contexts/FireStoreContext";
-import { collection, getDocs } from "firebase/firestore";
-import User from "../../data/UserDetails";
+import Repository from "../../data/repository";
 
 const HomePage = () => {
   const db = useContext(FirestoreContext);
-  const [arrayOfUsers, setArrayOfUsers] = useState([]);
+  const repository = new Repository();
+  const [listOfTransactions, setListOfTransactions] = useState([]);
 
-  async function getDatabase() {
-    try {
-      const tempArr = [];
-      const querySnapshot = await getDocs(collection(db, "users"));
-      querySnapshot.forEach((doc) => {
-        const user = new User(
-          doc.id,
-          doc.data().name,
-          doc.data().email,
-          doc.data().phoneNumber,
-          doc.data().imageUrl
-        );
-        tempArr.push(user);
-        console.log(doc.data());
-      });
-      setArrayOfUsers(tempArr);
-    } catch (error) {
-      console.log(error);
-    }
+  async function fetchTransactions() {
+    await repository.seeAllTransaction();
+    setListOfTransactions(repository.arrayOfTransactions);
   }
 
   useEffect(() => {
-    getDatabase();
+    fetchTransactions();
   }, []);
 
   return (
     <View>
       <FlatList
-        // keyExtractor={(item) => item.id}
-        data={arrayOfUsers}
+        keyExtractor={(item) => item.id}
+        data={listOfTransactions}
         renderItem={({ item }) => (
-          <View>
-            <Text>{item.id}</Text>
-            <Text>{item.name}</Text>
-            <Text>{item.phoneNumber}</Text>
-            <Text>{item.email}</Text>
-            <Text>{item.imageUrl}</Text>
+          <View style={styles.transactionList}>
+            <Text>{item.amount}</Text>
+            <Text>{item.otherUsers}</Text>
           </View>
         )}
       />
@@ -53,3 +34,11 @@ const HomePage = () => {
 };
 
 export default HomePage;
+
+const styles = StyleSheet.create({
+  transactionList: {
+    paddingVertical: 16,
+    backgroundColor: "#bbbbbb",
+    marginVertical: 4,
+  },
+});
