@@ -1,7 +1,7 @@
 import { getAuth } from "firebase/auth";
 import { firebaseConfig } from "../config/firebaseConfig";
 import { initializeApp } from "firebase/app";
-import { getFirestore } from "firebase/firestore";
+import { deleteDoc, addDoc, getFirestore } from "firebase/firestore";
 import { doc, collection, setDoc, getDocs } from "firebase/firestore";
 import Transaction from "./Transactions";
 class Repository {
@@ -20,16 +20,16 @@ class Repository {
   }
 
   // Method to add expenses
-  async addExpenses(amount) {
+  async addExpenses(amount, success) {
     try {
-      const dbRef = await setDoc(
-        doc(this.db, "Users", "iampranish@Outlook.com"),
+      const dbRef = await addDoc(
+        collection(this.db, "Users", "iampranish@Outlook.com", "receive"),
         {
-          name: "Pranish Pathak",
+          otherUsers: "Pranish Pathak",
           amount: amount,
         }
       );
-      console.log("Document written with ID: ");
+      success(true);
     } catch (error) {
       console.error("Error adding document: ", error);
     }
@@ -47,7 +47,8 @@ class Repository {
           doc.data().otherUsers,
           doc.data().timeStamp,
           doc.data().status,
-          doc.id
+          doc.id,
+          doc.data().details
         );
 
         this.arrayOfReceivingTransactions.push(transaction);
@@ -69,7 +70,8 @@ class Repository {
           doc.data().otherUsers,
           doc.data().timeStamp,
           doc.data().status,
-          doc.id
+          doc.id,
+          doc.data().details
         );
 
         this.arrayOfPayingTransactions.push(transaction);
@@ -96,6 +98,17 @@ class Repository {
         console.log(doc.data());
       });
       setArrayOfUsers(tempArr);
+    } catch (error) {
+      console.log(error);
+    }
+  }
+
+  // remove transaction
+  async removeTransaction(type, id, success) {
+    try {
+      const docRef = doc(this.db, "Users", "iampranish@Outlook.com", type, id);
+      await deleteDoc(docRef);
+      success(true);
     } catch (error) {
       console.log(error);
     }

@@ -1,4 +1,4 @@
-import { useNavigation } from "expo-router";
+import { router, useNavigation } from "expo-router";
 import { useState, useContext } from "react";
 import { Button, View, Text } from "react-native";
 import InputField from "../../components/InputField";
@@ -10,7 +10,11 @@ const AddExpensesDetails = () => {
 
   // when the add button is pressed
   async function addExpenses() {
-    await repository.addExpenses(amount);
+    await repository.addExpenses(amount, (success) => {
+      if (success) {
+        router.push("(tabs)");
+      }
+    });
   }
 
   const db = useContext(FirestoreContext);

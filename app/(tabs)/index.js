@@ -1,11 +1,13 @@
 import { useContext, useEffect, useState } from "react";
-import { View, Text, FlatList, StyleSheet } from "react-native";
+import { View, Text, FlatList, StyleSheet, Pressable } from "react-native";
 import { FirestoreContext } from "../../contexts/FireStoreContext";
 import Repository from "../../data/repository";
-import { RectButton } from "react-native-gesture-handler";
-import Swipeable from "react-native-gesture-handler/Swipeable";
+
+import { useRouter } from "expo-router";
 
 const HomePage = () => {
+  const router = useRouter();
+
   const db = useContext(FirestoreContext);
   const repository = new Repository();
   const [receivingTransactions, setReceivingTransactions] = useState([]);
@@ -25,27 +27,73 @@ const HomePage = () => {
   return (
     <View>
       <View style={styles.transactionsContainer}>
-        <Text>What you'll receive</Text>
+        <Text style={styles.titleStyle}>What you'll receive</Text>
         <FlatList
           keyExtractor={(item) => item.id}
           data={receivingTransactions}
           renderItem={({ item }) => (
             <View style={styles.receivingTransactions}>
-              <Text>{item.otherUsers}</Text>
-              <Text>{item.amount}</Text>
+              <Pressable
+                onPress={() => {
+                  router.push({
+                    pathname: `/expensesDetails/${item.id}`,
+                    params: item,
+                  });
+                }}
+                style={{ padding: 16 }}
+                android_ripple={{ color: "black" }}
+              >
+                <View
+                  style={{
+                    flexDirection: "row",
+                    justifyContent: "space-between",
+                  }}
+                >
+                  <View>
+                    <Text style={styles.transactionsFontStyle}>
+                      {item.otherUsers}
+                    </Text>
+                  </View>
+                  <View>
+                    <Text style={styles.transactionsFontStyle}>
+                      $ {item.amount}
+                    </Text>
+                  </View>
+                </View>
+              </Pressable>
             </View>
           )}
         />
       </View>
       <View style={styles.transactionsContainer}>
-        <Text>What you'll Pay</Text>
+        <Text style={styles.titleStyle}>What you'll Pay</Text>
         <FlatList
           keyExtractor={(item) => item.id}
           data={payingTransactions}
           renderItem={({ item }) => (
             <View style={styles.payingTransactions}>
-              <Text>{item.otherUsers}</Text>
-              <Text>{item.amount}</Text>
+              <Pressable
+                style={{ padding: 16 }}
+                android_ripple={{ color: "black" }}
+              >
+                <View
+                  style={{
+                    flexDirection: "row",
+                    justifyContent: "space-between",
+                  }}
+                >
+                  <View>
+                    <Text style={styles.transactionsFontStyle}>
+                      {item.otherUsers}
+                    </Text>
+                  </View>
+                  <View>
+                    <Text style={styles.transactionsFontStyle}>
+                      $ {item.amount}
+                    </Text>
+                  </View>
+                </View>
+              </Pressable>
             </View>
           )}
         />
@@ -58,23 +106,35 @@ export default HomePage;
 
 const styles = StyleSheet.create({
   transactionsContainer: {
-    marginHorizontal: 8,
+    marginHorizontal: 16,
   },
   receivingTransactions: {
-    padding: 16,
+    flex: 1,
+    justifyContent: "center",
+    height: 100,
     borderRadius: 10,
-    paddingVertical: 16,
     marginVertical: 4,
-    borderWidth: 1,
-    borderColor: "green",
+    backgroundColor: "green",
+    overflow: "hidden",
   },
   payingTransactions: {
-    padding: 16,
-
     borderRadius: 10,
-    paddingVertical: 16,
+    justifyContent: "center",
+    height: 100,
     marginVertical: 4,
-    borderWidth: 1,
-    borderColor: "red",
+    backgroundColor: "red",
+    overflow: "hidden",
+  },
+
+  transactionsFontStyle: {
+    color: "white",
+    fontSize: 20,
+  },
+
+  titleStyle: {
+    marginTop: 16,
+    marginBottom: 4,
+    fontWeight: "bold",
+    fontSize: 26,
   },
 });

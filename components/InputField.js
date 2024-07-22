@@ -17,6 +17,45 @@ export default function InputField({ children, enteredText, onChangeText }) {
   );
 }
 
+export function EmailField({ children, enteredText, onChangeText }) {
+  return (
+    <View>
+      <TextInput
+        keyboardType="email-address"
+        clearButtonMode="while-editing"
+        autoComplete="email"
+        secureTextEntry={false}
+        value={enteredText}
+        onChangeText={(text) => {
+          onChangeText(text);
+        }}
+        placeholderTextColor="grey"
+        placeholder={children}
+        style={styles.inputText}
+      />
+    </View>
+  );
+}
+
+export function PasswordField({ children, enteredText, onChangeText }) {
+  return (
+    <View>
+      <TextInput
+        clearButtonMode="while-editing"
+        autoComplete="password"
+        secureTextEntry={true}
+        value={enteredText}
+        onChangeText={(text) => {
+          onChangeText(text);
+        }}
+        placeholderTextColor="grey"
+        placeholder={children}
+        style={styles.inputText}
+      />
+    </View>
+  );
+}
+
 const styles = StyleSheet.create({
   inputText: {
     padding: 8,

@@ -2,7 +2,7 @@ import { useState } from "react";
 import { Alert, Modal, StyleSheet, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { FilledButton, OutlinedButton } from "../components/Button";
-import InputField from "../components/InputField";
+import * as InputField from "../components/InputField";
 import * as Notifications from "expo-notifications";
 import LoginRepository from "../data/LoginRepository";
 
@@ -14,7 +14,7 @@ export default function RegisterScreen({ onPress }) {
   const [phoneNumber, setPhoneNumber] = useState("");
   const repository = new LoginRepository();
   function registerNow() {
-    repository.register(email, password, (success) => {
+    repository.register(name, phoneNumber, email, password, (success) => {
       if (success) {
         onPress();
       } else {
@@ -35,30 +35,30 @@ export default function RegisterScreen({ onPress }) {
             <Text style={styles.pageHeader}>Register Now</Text>
           </View>
           <View>
-            <InputField
+            <InputField.default
               enteredText={name}
               onChangeText={(text) => setName(text)}
             >
               Full Name
-            </InputField>
-            <InputField
-              enteredText={email}
-              onChangeText={(text) => setEmail(text)}
-            >
-              Email
-            </InputField>
-            <InputField
-              enteredText={password}
-              onChangeText={(text) => setpassword(text)}
-            >
-              Password
-            </InputField>
-            <InputField
+            </InputField.default>
+            <InputField.default
               enteredText={phoneNumber}
               onChangeText={(text) => setPhoneNumber(text)}
             >
               Phone Number
-            </InputField>
+            </InputField.default>
+            <InputField.EmailField
+              enteredText={email}
+              onChangeText={(text) => setEmail(text)}
+            >
+              Email
+            </InputField.EmailField>
+            <InputField.PasswordField
+              enteredText={password}
+              onChangeText={(text) => setpassword(text)}
+            >
+              Password
+            </InputField.PasswordField>
           </View>
         </View>
         <View>

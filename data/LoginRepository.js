@@ -1,7 +1,7 @@
 import { getAuth, createUserWithEmailAndPassword } from "firebase/auth";
 import { firebaseConfig } from "../config/firebaseConfig";
 import { initializeApp } from "firebase/app";
-import { getFirestore } from "firebase/firestore";
+import { getFirestore, collection, addDoc } from "firebase/firestore";
 
 class LoginRepository {
   constructor() {
@@ -13,15 +13,18 @@ class LoginRepository {
     this.auth = getAuth(this.app);
   }
 
-  async register(email, password, result) {
+  async register(name, phoneNumber, email, password, result) {
     try {
       await createUserWithEmailAndPassword(this.auth, email, password).then(
-        (userCredential) => {
+        async (userCredential) => {
           // Signed up
+          const dbRef = await addDoc(collection(this.db, "Users"), {
+            name: name,
+            phoneNumber: phoneNumber,
+            email: email,
+          });
           const user = userCredential.user;
-          console.log(user.email);
           result(true);
-          // ...
         }
       );
     } catch (error) {

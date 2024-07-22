@@ -5,7 +5,7 @@ import { router } from "expo-router";
 import { AuthContext } from "../contexts/AuthContext";
 import { signInWithEmailAndPassword } from "firebase/auth";
 import RegisterScreen from "./RegisterScreen.js";
-import InputField from "../components/InputField.js";
+import * as InputField from "../components/InputField.js";
 
 export default function LoginScreen() {
   const [email, setEmail] = useState("iampranish@outlook.com");
@@ -33,16 +33,19 @@ export default function LoginScreen() {
     <SafeAreaView>
       <Text>Login to Continue</Text>
       <View style={styles.buttonsContainer}>
-        <InputField enteredText={email} onChangeText={(text) => setEmail(text)}>
+        <InputField.EmailField
+          enteredText={email}
+          onChangeText={(text) => setEmail(text)}
+        >
           Email
-        </InputField>
+        </InputField.EmailField>
 
-        <InputField
+        <InputField.PasswordField
           enteredText={password}
           onChangeText={(text) => setpassword(text)}
         >
           Password
-        </InputField>
+        </InputField.PasswordField>
       </View>
 
       <View style={styles.buttonsContainer}>
