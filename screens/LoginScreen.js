@@ -1,22 +1,11 @@
 import { useContext, useState } from "react";
-import {
-  Text,
-  View,
-  Alert,
-  TextInput,
-  StyleSheet,
-  SafeAreaView,
-} from "react-native";
+import { Text, View, Alert, StyleSheet, SafeAreaView } from "react-native";
 import { FilledButton, OutlinedButton } from "../components/Button";
 import { router } from "expo-router";
 import { AuthContext } from "../contexts/AuthContext";
-import {
-  signInWithEmailAndPassword,
-  createUserWithEmailAndPassword,
-} from "firebase/auth";
+import { signInWithEmailAndPassword } from "firebase/auth";
 import RegisterScreen from "./RegisterScreen.js";
 import InputField from "../components/InputField.js";
-import firebase from "firebase/compat/app";
 
 export default function LoginScreen() {
   const [email, setEmail] = useState("iampranish@outlook.com");
@@ -26,23 +15,17 @@ export default function LoginScreen() {
   const [registerPageView, setregisterPageView] = useState(false);
 
   const auth = useContext(AuthContext);
-  function register(email, password) {
-    try {
-      createUserWithEmailAndPassword(auth, email, password).then(
-        Alert.alert(auth?.user?.email)
-      );
-    } catch (error) {
-      console.log(error);
-    }
-  }
 
-  function login(email, password) {
+  async function login(email, password, success) {
     try {
-      signInWithEmailAndPassword(auth, email, password).then((credencials) => {
-        console.log(credencials.user.email);
-        auth.setPersistence(firebase.auth.Auth.Persistence.LOCAL);
-      });
+      await signInWithEmailAndPassword(auth, email, password).then(
+        (credencials) => {
+          success(true);
+          console.log(credencials.user.email);
+        }
+      );
     } catch (e) {
+      success(false);
       console.log(e);
     }
   }
@@ -64,10 +47,15 @@ export default function LoginScreen() {
 
       <View style={styles.buttonsContainer}>
         <FilledButton
-          onPress={() => {
+          onPress={async () => {
             // router.replace("(tabs)/profile");
-            router.push("(tabs)/profile");
-            login(email, password);
+            await login(email, password, (success) => {
+              if (success) {
+                router.replace("(tabs)");
+              } else {
+                Alert.alert("Something Went Wrong");
+              }
+            });
           }}
         >
           Login

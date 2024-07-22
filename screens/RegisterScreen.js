@@ -3,12 +3,25 @@ import { Alert, Modal, StyleSheet, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { FilledButton, OutlinedButton } from "../components/Button";
 import InputField from "../components/InputField";
+import * as Notifications from "expo-notifications";
+import LoginRepository from "../data/LoginRepository";
 
 export default function RegisterScreen({ onPress }) {
+  // const [visible, setVisible] = useState(true);
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setpassword] = useState("");
   const [phoneNumber, setPhoneNumber] = useState("");
+  const repository = new LoginRepository();
+  function registerNow() {
+    repository.register(email, password, (success) => {
+      if (success) {
+        onPress();
+      } else {
+        console.log("Failed");
+      }
+    });
+  }
   return (
     <Modal
       onRequestClose={onPress}
@@ -38,19 +51,18 @@ export default function RegisterScreen({ onPress }) {
               enteredText={password}
               onChangeText={(text) => setpassword(text)}
             >
-              Phone Number
+              Password
             </InputField>
             <InputField
               enteredText={phoneNumber}
               onChangeText={(text) => setPhoneNumber(text)}
             >
-              Password
+              Phone Number
             </InputField>
           </View>
         </View>
-
         <View>
-          <FilledButton onPress={onPress}>Register</FilledButton>
+          <FilledButton onPress={() => registerNow()}>Register</FilledButton>
           <OutlinedButton onPress={onPress}>Back</OutlinedButton>
         </View>
       </View>

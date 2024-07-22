@@ -3,6 +3,7 @@ import { View, Text } from "react-native";
 import LoginScreen from "../screens/LoginScreen";
 import { AuthContext } from "../contexts/AuthContext";
 import { router } from "expo-router";
+import Repository from "../data/repository";
 
 const HomePage = () => {
   const auth = useContext(AuthContext);
