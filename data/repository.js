@@ -13,7 +13,10 @@ class Repository {
     this.db = getFirestore(this.app);
     this.auth = getAuth(this.app);
     this.currentUser = this.auth.currentUser;
-    this.arrayOfTransactions = [];
+
+    //  array which will hold both receiving and paying transactions of current user
+    this.arrayOfReceivingTransactions = [];
+    this.arrayOfPayingTransactions = [];
   }
 
   // Method to add expenses
@@ -33,10 +36,10 @@ class Repository {
   }
 
   // Method to see all transactions of a user
-  async seeAllTransaction() {
+  async seeAllReceivingTransaction() {
     try {
       const dbRef = await getDocs(
-        collection(this.db, "Users", "iampranish@Outlook.com", "transactions")
+        collection(this.db, "Users", "iampranish@Outlook.com", "receive")
       );
       dbRef.forEach((doc) => {
         const transaction = new Transaction(
@@ -47,7 +50,29 @@ class Repository {
           doc.id
         );
 
-        this.arrayOfTransactions.push(transaction);
+        this.arrayOfReceivingTransactions.push(transaction);
+      });
+    } catch (error) {
+      console.log(error);
+    }
+  }
+
+  // Method to see all transactions of a user
+  async seeAllPayingTransaction() {
+    try {
+      const dbRef = await getDocs(
+        collection(this.db, "Users", "iampranish@Outlook.com", "pay")
+      );
+      dbRef.forEach((doc) => {
+        const transaction = new Transaction(
+          doc.data().amount,
+          doc.data().otherUsers,
+          doc.data().timeStamp,
+          doc.data().status,
+          doc.id
+        );
+
+        this.arrayOfPayingTransactions.push(transaction);
       });
     } catch (error) {
       console.log(error);

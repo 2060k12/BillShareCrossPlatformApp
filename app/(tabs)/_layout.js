@@ -19,7 +19,7 @@ export default function _layout() {
   return (
     <FirestoreContext.Provider value={db}>
       <AuthContext.Provider value={auth}>
-        <Tabs>
+        <Tabs screenOptions={{ tabBarShowLabel: false }}>
           <Tabs.Screen
             name="index"
             options={{
