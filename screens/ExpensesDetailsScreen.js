@@ -7,9 +7,11 @@ import {
   View,
   StyleSheet,
   Modal,
+  Alert,
 } from "react-native";
 import { FilledButton, OutlinedButton } from "../components/Button";
 import Repository from "../data/repository";
+import * as InputField from "../components/InputField";
 
 const ExpensesDetailScreen = () => {
   // state for model view
@@ -24,9 +26,11 @@ const ExpensesDetailScreen = () => {
       <Button title="Edit" onPress={() => setEditMode(true)} />
     ),
   });
+
   const { id, ...transaction } = useLocalSearchParams();
   // repository use firebase functions
   const repository = new Repository();
+  const [amount, setAmount] = useState(transaction.amount);
 
   return (
     <SafeAreaView style={styles.screenContainer}>
@@ -67,7 +71,61 @@ const ExpensesDetailScreen = () => {
         animationType="slide"
         onRequestClose={() => setEditMode(false)}
         visible={editMode}
-      ></Modal>
+      >
+        <SafeAreaView>
+          <View
+            style={{
+              flexDirection: "row",
+              // justifyContent: "space-between",
+              marginHorizontal: 16,
+              marginVertical: 8,
+            }}
+          >
+            <Button title="Back" onPress={() => setEditMode(false)} />
+            {/* <Button title="Save" /> */}
+          </View>
+
+          <View style={{ margin: 16 }}>
+            <Text style={{ fontSize: 20 }}>Amount</Text>
+            <InputField.default
+              enteredText={amount}
+              onChangeText={(text) => {
+                setAmount(text);
+              }}
+            >
+              Enter New Amount
+            </InputField.default>
+
+            <FilledButton
+              onPress={() => {
+                if (amount != transaction.amount) {
+                  repository.updateAmount(id, amount, (success) => {
+                    if (success) {
+                      router.push("(tabs)");
+                      setEditMode(false);
+                      Alert.alert("Amount Updated Successfully");
+                    } else {
+                      Alert.alert("Something went wrong, Try Again Later!");
+                    }
+                  });
+                } else {
+                  Alert.alert("You can't update same amount");
+                }
+              }}
+            >
+              Save
+            </FilledButton>
+
+            <OutlinedButton
+              onPress={() => {
+                setEditMode(false);
+              }}
+            >
+              Cancel
+            </OutlinedButton>
+          </View>
+        </SafeAreaView>
+      </Modal>
     </SafeAreaView>
   );
 };

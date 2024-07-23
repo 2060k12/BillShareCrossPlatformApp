@@ -10,7 +10,7 @@ const AddExpensesDetails = () => {
 
   // when the add button is pressed
   async function addExpenses() {
-    await repository.addExpenses(amount, (success) => {
+    await repository.addExpenses(amount, details, (success) => {
       if (success) {
         router.push("(tabs)");
       }
@@ -19,6 +19,7 @@ const AddExpensesDetails = () => {
 
   const db = useContext(FirestoreContext);
   const [amount, setAmount] = useState("");
+  const [details, setDetails] = useState("");
 
   const nav = useNavigation();
   nav.setOptions({
@@ -27,10 +28,20 @@ const AddExpensesDetails = () => {
     headerRight: () => <Button onPress={addExpenses} title="Add" />,
   });
   return (
-    <View>
+    <View
+      style={{
+        margin: 16,
+      }}
+    >
       <Text>Selected People: Pranish, John Doe</Text>
       <InputField enteredText={amount} onChangeText={(text) => setAmount(text)}>
         Add Amount
+      </InputField>
+      <InputField
+        enteredText={details}
+        onChangeText={(text) => setDetails(text)}
+      >
+        Details
       </InputField>
     </View>
   );

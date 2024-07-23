@@ -8,8 +8,8 @@ import RegisterScreen from "./RegisterScreen.js";
 import * as InputField from "../components/InputField.js";
 
 export default function LoginScreen() {
-  const [email, setEmail] = useState("iampranish@outlook.com");
-  const [password, setpassword] = useState("123456789");
+  const [email, setEmail] = useState("");
+  const [password, setpassword] = useState("");
 
   // state of register page
   const [registerPageView, setregisterPageView] = useState(false);

@@ -2,7 +2,13 @@ import { getAuth } from "firebase/auth";
 import { firebaseConfig } from "../config/firebaseConfig";
 import { initializeApp } from "firebase/app";
 import { deleteDoc, addDoc, getFirestore } from "firebase/firestore";
-import { doc, collection, setDoc, getDocs } from "firebase/firestore";
+import {
+  doc,
+  collection,
+  setDoc,
+  getDocs,
+  updateDoc,
+} from "firebase/firestore";
 import Transaction from "./Transactions";
 class Repository {
   constructor() {
@@ -20,12 +26,13 @@ class Repository {
   }
 
   // Method to add expenses
-  async addExpenses(amount, success) {
+  async addExpenses(amount, details, success) {
     try {
       const dbRef = await addDoc(
         collection(this.db, "Users", "iampranish@Outlook.com", "receive"),
         {
           otherUsers: "Pranish Pathak",
+          details: details,
           amount: amount,
         }
       );
@@ -110,6 +117,37 @@ class Repository {
       await deleteDoc(docRef);
       success(true);
     } catch (error) {
+      console.log(error);
+    }
+  }
+
+  // update amount
+  async updateAmount(id, newAmount, success) {
+    try {
+      const dbRef = doc(
+        this.db,
+        "Users",
+        "iampranish@Outlook.com",
+        "receive",
+        id
+      );
+      await updateDoc(dbRef, {
+        amount: newAmount,
+      });
+      success(true);
+    } catch (error) {
+      success(false);
+      console.log(error);
+    }
+  }
+
+  // logOut currentuser
+  async logOut(success) {
+    try {
+      this.auth.signOut();
+      success(true);
+    } catch (error) {
+      success(false);
       console.log(error);
     }
   }

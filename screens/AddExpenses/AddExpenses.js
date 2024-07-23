@@ -18,17 +18,17 @@ const AddExpenses = () => {
     });
   }, [navigation]);
   return (
-    <View>
+    <View style={{ margin: 16 }}>
       <InputField enteredText={search} onChangeText={(text) => setSearch(text)}>
         Search
       </InputField>
 
-      <View>
-        <Text>Groups</Text>
+      <View style={{ minHeight: 100 }}>
+        <Text style={{ fontSize: 24, fontWeight: "bold" }}>Groups</Text>
       </View>
 
-      <View>
-        <Text>Friends</Text>
+      <View style={{ minHeight: 100 }}>
+        <Text style={{ fontSize: 24, fontWeight: "bold" }}>Friends</Text>
       </View>
     </View>
   );
