@@ -1,5 +1,5 @@
 import { useEffect, useContext } from "react";
-import { View, Text } from "react-native";
+import { View } from "react-native";
 import LoginScreen from "../screens/LoginScreen";
 import { AuthContext } from "../contexts/AuthContext";
 
