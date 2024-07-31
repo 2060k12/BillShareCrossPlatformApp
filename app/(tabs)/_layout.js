@@ -1,4 +1,4 @@
-import { Stack, Tabs } from "expo-router";
+import { Tabs } from "expo-router";
 import { initializeApp } from "firebase/app";
 import { getFirestore } from "firebase/firestore";
 import { firebaseConfig } from "../../config/firebaseConfig";
@@ -6,7 +6,6 @@ import { FirestoreContext } from "../../contexts/FireStoreContext";
 import { FontAwesome } from "@expo/vector-icons";
 import { getAuth } from "firebase/auth";
 import { AuthContext } from "../../contexts/AuthContext";
-import { Button } from "react-native";
 
 export default function _layout() {
   // firebase auth

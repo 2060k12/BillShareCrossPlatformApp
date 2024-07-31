@@ -2,7 +2,6 @@ import { useEffect, useContext } from "react";
 import { View, Text } from "react-native";
 import LoginScreen from "../screens/LoginScreen";
 import { AuthContext } from "../contexts/AuthContext";
-import { router } from "expo-router";
 
 const HomePage = () => {
   const auth = useContext(AuthContext);
