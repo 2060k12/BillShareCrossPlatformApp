@@ -9,3 +9,11 @@ class User {
 }
 
 export default User;
+
+export class PeopleInvolved {
+  constructor(name, percentage, phoneNumber) {
+    (this.name = name),
+      (this.percentage = percentage),
+      (this.phoneNumber = phoneNumber);
+  }
+}

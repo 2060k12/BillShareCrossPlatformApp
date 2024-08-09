@@ -1,19 +1,16 @@
 import { router, useNavigation } from "expo-router";
-import { useState, useContext, useEffect } from "react";
+import { useState, useEffect } from "react";
 import {
   Button,
   View,
   Text,
   FlatList,
   StyleSheet,
-  TextInput,
-  ScrollView,
-  KeyboardAvoidingView,
   Platform,
+  KeyboardAvoidingView,
   Alert,
 } from "react-native";
 import InputField from "../../components/InputField";
-import { FirestoreContext } from "../../contexts/FireStoreContext";
 import Repository from "../../data/repository";
 import { useRoute } from "@react-navigation/native";
 import * as Contacts from "expo-contacts";
@@ -27,9 +24,11 @@ const AddExpensesDetails = () => {
     : [];
 
   const [contactDetails, setContactDetails] = useState([]);
-  const [percentages, setPercentages] = useState({});
+  const [amount, setAmount] = useState("");
+  const [details, setDetails] = useState("");
+  const [involvedPeople, setInvolvedPeople] = useState([]);
 
-  // Permission to get access to contacts
+  // Fetch contacts with permission
   useEffect(() => {
     (async () => {
       try {
@@ -45,11 +44,13 @@ const AddExpensesDetails = () => {
             );
             setContactDetails(filteredContacts);
 
-            const initialPercentages = {};
-            filteredContacts.forEach((contact) => {
-              initialPercentages[contact.id] = "";
-            });
-            setPercentages(initialPercentages);
+            // Initialize involvedPeople with filtered contacts
+            const initialPeople = filteredContacts.map((contact) => ({
+              name: contact.name,
+              phoneNumber: contact.phoneNumbers[0]?.number || "",
+              percentage: "",
+            }));
+            setInvolvedPeople(initialPeople);
           }
         } else {
           console.log("Contacts permission denied");
@@ -60,42 +61,74 @@ const AddExpensesDetails = () => {
     })();
   }, [selectedContactIds]);
 
-  // useState for amount and setDetails
-  const [amount, setAmount] = useState("");
-  const [details, setDetails] = useState("");
-
+  // Add expenses function
   async function addExpenses() {
-    const totalPercentage = Object.values(percentages).reduce(
-      (acc, percent) => acc + parseFloat(percent || 0),
+    const totalPercentage = involvedPeople.reduce(
+      (acc, person) => acc + parseFloat(person.percentage || 0),
       0
     );
-    if (totalPercentage === 100) {
-      await repository.addExpenses(amount, details, (success) => {
-        if (success) {
-          router.push("(tabs)");
+
+    try {
+      await repository.addExpenses(
+        amount,
+        details,
+        involvedPeople,
+        (success) => {
+          try {
+            if (success) {
+              router.push("(tabs)");
+            } else {
+              Alert.alert("Error", "Failed to add expenses");
+            }
+          } catch (callbackError) {
+            console.error("Error in callback:", callbackError);
+            Alert.alert("Error", "An unexpected error occurred");
+          }
         }
-      });
-    } else {
-      Alert.alert("Error", "The total percentage must be exactly 100.");
+      );
+    } catch (error) {
+      console.error("Error adding expenses:", error);
+      Alert.alert(
+        "Error",
+        "An unexpected error occurred while adding expenses"
+      );
     }
   }
 
-  // adding add button in the navigation
-  const nav = useNavigation();
-  nav.setOptions({
-    headerShown: true,
-    title: "Add Expenses",
-    headerRight: () => <Button onPress={addExpenses} title="Add" />,
-  });
+  const navigation = useNavigation();
+
+  useEffect(() => {
+    navigation.setOptions({
+      headerShown: true,
+      title: "Add Expenses",
+      headerRight: () => <Button onPress={addExpenses} title="Add" />,
+    });
+  }, [navigation, amount, details, involvedPeople]);
+
+  const handlePercentageChange = (phoneNumber, text) => {
+    const updatedPeople = involvedPeople.map((person) =>
+      person.phoneNumber === phoneNumber
+        ? { ...person, percentage: text }
+        : person
+    );
+    setInvolvedPeople(updatedPeople);
+  };
 
   const renderContact = ({ item }) => (
     <View style={styles.contactContainer}>
       <Text style={styles.contactName}>{item.name}</Text>
       {item.phoneNumbers &&
         item.phoneNumbers.map((phone, idx) => (
-          <Text key={idx} style={styles.phoneNumber}>
-            {phone.number}
-          </Text>
+          <View key={idx}>
+            <Text style={styles.phoneNumber}>{phone.number}</Text>
+            <InputField
+              placeholder="Enter percentage"
+              keyboardType="numeric"
+              onChangeText={(text) =>
+                handlePercentageChange(phone.number, text)
+              }
+            />
+          </View>
         ))}
     </View>
   );
@@ -105,13 +138,10 @@ const AddExpensesDetails = () => {
       style={styles.scrollView}
       behavior={Platform.OS === "ios" ? "padding" : "height"}
     >
-      <InputField enteredText={amount} onChangeText={(text) => setAmount(text)}>
+      <InputField enteredText={amount} onChangeText={setAmount}>
         Add Amount
       </InputField>
-      <InputField
-        enteredText={details}
-        onChangeText={(text) => setDetails(text)}
-      >
+      <InputField enteredText={details} onChangeText={setDetails}>
         Details
       </InputField>
       <Text style={styles.header}>Selected People</Text>
@@ -120,6 +150,7 @@ const AddExpensesDetails = () => {
         keyExtractor={(item) => item.id}
         renderItem={renderContact}
       />
+      <Button title="Add Expenses" onPress={addExpenses} />
     </KeyboardAvoidingView>
   );
 };

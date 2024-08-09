@@ -26,14 +26,45 @@ class Repository {
   }
 
   // Method to add expenses
-  async addExpenses(amount, details, success) {
+  async addExpenses(amount, details, peopleInvolved, success) {
     try {
+      const formattedPeopleInvolved = peopleInvolved.map((person) => ({
+        name: person.name,
+        percentage: person.percentage,
+        phoneNumber: person.phoneNumber,
+      }));
+
+      formattedPeopleInvolved.forEach(async (each) => {
+        const phoneNumber = each.phoneNumber
+          .replace("(", "")
+          .replace(")", "")
+          .replace(" ", "")
+          .replace("-", "");
+        if (phoneNumber.startsWith("+61")) {
+          phoneNumber = phoneNumber.slice(3);
+        }
+
+        try {
+          const dbRef = await addDoc(
+            collection(this.db, "Users", phoneNumber, "pay"),
+            {
+              details: details,
+              amount: (each.percentage * amount) / 100,
+              peopleInvolved: formattedPeopleInvolved,
+            }
+          );
+          success(true);
+        } catch (error) {
+          console.error("Error adding document: ", error);
+        }
+      });
       const dbRef = await addDoc(
         collection(this.db, "Users", "iampranish@Outlook.com", "receive"),
         {
           otherUsers: "Pranish Pathak",
           details: details,
           amount: amount,
+          peopleInvolved: formattedPeopleInvolved,
         }
       );
       success(true);
