@@ -8,7 +8,9 @@ import {
   StyleSheet,
   Platform,
   KeyboardAvoidingView,
+  Pressable,
   Alert,
+  ActivityIndicator,
 } from "react-native";
 import InputField from "../../components/InputField";
 import Repository from "../../data/repository";
@@ -27,10 +29,12 @@ const AddExpensesDetails = () => {
   const [amount, setAmount] = useState("");
   const [details, setDetails] = useState("");
   const [involvedPeople, setInvolvedPeople] = useState([]);
+  const [loading, setLoading] = useState(false);
 
   // Fetch contacts with permission
   useEffect(() => {
-    (async () => {
+    const fetchContacts = async () => {
+      setLoading(false);
       try {
         const { status } = await Contacts.requestPermissionsAsync();
         if (status === "granted") {
@@ -53,38 +57,34 @@ const AddExpensesDetails = () => {
 
             async function fetchUserData() {
               try {
-                let userName, phoneNumber;
-                await repository.getCurrentUser(
-                  (name) => {
-                    userName = name;
-                  },
-                  (phone) => {
-                    phoneNumber = phone;
-                  }
-                );
-
-                setInvolvedPeople((prevPeople) => [
-                  ...prevPeople,
-                  {
-                    name: userName,
-                    phoneNumber: phoneNumber,
-                  },
-                ]);
+                const userData = await repository.getCurrentUser();
+                if (userData) {
+                  setInvolvedPeople((prevPeople) => [
+                    ...prevPeople,
+                    {
+                      name: userData.name,
+                      phoneNumber: userData.phoneNumber,
+                    },
+                  ]);
+                }
               } catch (error) {
                 console.error("Error fetching user data:", error);
               }
             }
-            print(involvedPeople);
 
             fetchUserData();
           }
         } else {
-          console.log("Contacts permission denied");
+          Alert.alert("Permission Denied", "Cannot access contacts.");
         }
       } catch (error) {
-        console.error("Failed to fetch contacts:", error);
+        Alert.alert("Error", "Failed to fetch contacts.");
+      } finally {
+        setLoading(false);
       }
-    })();
+    };
+
+    fetchContacts();
   }, [selectedContactIds]);
 
   // Add expenses function
@@ -155,19 +155,36 @@ const AddExpensesDetails = () => {
       style={styles.scrollView}
       behavior={Platform.OS === "ios" ? "padding" : "height"}
     >
-      <InputField enteredText={amount} onChangeText={setAmount}>
-        Add Amount
-      </InputField>
-      <InputField enteredText={details} onChangeText={setDetails}>
-        Details
-      </InputField>
-      <Text style={styles.header}>Selected People</Text>
-      <FlatList
-        data={contactDetails}
-        keyExtractor={(item) => item.id}
-        renderItem={renderContact}
-      />
-      <Button onPress={addExpenses} title="Add" />
+      {loading ? (
+        <View style={styles.loadingContainer}>
+          <ActivityIndicator size="large" color="#31e981" />
+        </View>
+      ) : (
+        <View>
+          <InputField enteredText={amount} onChangeText={setAmount}>
+            Add Amount
+          </InputField>
+          <InputField enteredText={details} onChangeText={setDetails}>
+            Details
+          </InputField>
+          <Text style={styles.header}>Selected People</Text>
+          <FlatList
+            data={contactDetails}
+            keyExtractor={(item) => item.id}
+            renderItem={renderContact}
+          />
+          <Pressable
+            style={styles.button}
+            onPress={async () => {
+              setLoading(true);
+              await addExpenses();
+              setLoading(false);
+            }}
+          >
+            <Text style={styles.buttonText}>Add</Text>
+          </Pressable>
+        </View>
+      )}
     </KeyboardAvoidingView>
   );
 };
@@ -205,6 +222,11 @@ const styles = StyleSheet.create({
     borderRadius: 4,
     padding: 8,
     fontSize: 16,
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
   },
 });
 

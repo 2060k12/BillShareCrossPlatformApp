@@ -1,5 +1,12 @@
 import { useContext, useState } from "react";
-import { Text, View, Alert, StyleSheet, SafeAreaView } from "react-native";
+import {
+  Text,
+  View,
+  Alert,
+  StyleSheet,
+  SafeAreaView,
+  ActivityIndicator,
+} from "react-native";
 import { FilledButton, OutlinedButton } from "../components/Button";
 import { router } from "expo-router";
 import { AuthContext } from "../contexts/AuthContext";
@@ -14,28 +21,36 @@ export default function LoginScreen() {
   // state of register page
   const [registerPageView, setregisterPageView] = useState(false);
 
+  // state for loading indicator
+  const [loading, setLoading] = useState(false);
+
   const auth = useContext(AuthContext);
 
   async function login(email, password, success) {
+    setLoading(true);
     try {
       await signInWithEmailAndPassword(auth, email, password).then(
-        (credencials) => {
+        (credentials) => {
           success(true);
-          console.log(credencials.user.email);
+          console.log(credentials.user.email);
         }
       );
     } catch (e) {
       success(false);
       console.log(e);
+    } finally {
+      setLoading(false);
     }
   }
+
   return (
-    <SafeAreaView>
-      <Text>Login to Continue</Text>
-      <View style={styles.buttonsContainer}>
+    <SafeAreaView style={styles.container}>
+      <Text style={styles.title}>Login to Continue</Text>
+      <View style={styles.inputContainer}>
         <InputField.EmailField
           enteredText={email}
           onChangeText={(text) => setEmail(text)}
+          style={styles.input}
         >
           Email
         </InputField.EmailField>
@@ -43,33 +58,41 @@ export default function LoginScreen() {
         <InputField.PasswordField
           enteredText={password}
           onChangeText={(text) => setpassword(text)}
+          style={styles.input}
         >
           Password
         </InputField.PasswordField>
       </View>
 
       <View style={styles.buttonsContainer}>
-        <FilledButton
-          onPress={async () => {
-            // router.replace("(tabs)/profile");
-            await login(email, password, (success) => {
-              if (success) {
-                router.replace("(tabs)");
-              } else {
-                Alert.alert("Something Went Wrong");
-              }
-            });
-          }}
-        >
-          Login
-        </FilledButton>
-        <OutlinedButton
-          onPress={() => {
-            setregisterPageView(true);
-          }}
-        >
-          Register Now
-        </OutlinedButton>
+        {loading ? (
+          <ActivityIndicator size="large" color="#6200ee" />
+        ) : (
+          <>
+            <FilledButton
+              onPress={async () => {
+                await login(email, password, (success) => {
+                  if (success) {
+                    router.replace("(tabs)");
+                  } else {
+                    Alert.alert("Something Went Wrong");
+                  }
+                });
+              }}
+              style={styles.filledButton}
+            >
+              Login
+            </FilledButton>
+            <OutlinedButton
+              onPress={() => {
+                setregisterPageView(true);
+              }}
+              style={styles.outlinedButton}
+            >
+              Register Now
+            </OutlinedButton>
+          </>
+        )}
         {registerPageView && (
           <RegisterScreen onPress={() => setregisterPageView(false)} />
         )}
@@ -79,16 +102,44 @@ export default function LoginScreen() {
 }
 
 const styles = StyleSheet.create({
-  inputText: {
-    padding: 8,
-    fontSize: 20,
+  container: {
+    backgroundColor: "#f5f5f5",
+    padding: 16,
+    justifyContent: "center",
+  },
+  title: {
+    fontSize: 24,
+    fontWeight: "bold",
+    textAlign: "center",
+    marginBottom: 24,
+  },
+  inputContainer: {
+    margin: 16,
+  },
+  input: {
+    padding: 12,
+    fontSize: 16,
     marginHorizontal: 16,
-    marginVertical: 4,
+    marginVertical: 8,
     borderWidth: 1,
-    borderColor: "black",
-    borderRadius: 5,
+    borderColor: "#ccc",
+    borderRadius: 8,
+    backgroundColor: "#fff",
   },
   buttonsContainer: {
     marginHorizontal: 16,
+  },
+  filledButton: {
+    backgroundColor: "#6200ee",
+    padding: 12,
+    borderRadius: 8,
+    marginVertical: 8,
+  },
+  outlinedButton: {
+    borderColor: "#6200ee",
+    borderWidth: 1,
+    padding: 12,
+    borderRadius: 8,
+    marginVertical: 8,
   },
 });

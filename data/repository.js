@@ -92,7 +92,7 @@ class Repository {
   async seeAllReceivingTransaction() {
     try {
       const dbRef = await getDocs(
-        collection(this.db, "Users", "iampranish@Outlook.com", "receive")
+        collection(this.db, "Users", "0412524317", "receive")
       );
       dbRef.forEach((doc) => {
         const transaction = new Transaction(
@@ -198,7 +198,7 @@ class Repository {
     }
   }
 
-  async getCurrentUser(username, phoneNumber) {
+  async getCurrentUser() {
     try {
       // Get current user from Auth
       const currentUser = this.auth.currentUser;
@@ -213,12 +213,17 @@ class Repository {
         if (userDoc.exists()) {
           // Extract the phone field and name from the document
           const userData = userDoc.data();
-          print(userData);
-          username(userData.name);
-          phoneNumber(userData.phoneNumber);
+          return {
+            name: userData.name,
+            phoneNumber: userData.phoneNumber,
+          };
         } else {
           console.log("No such document!");
+          return null;
         }
+      } else {
+        console.log("No current user!");
+        return null;
       }
     } catch (error) {
       console.error("Error getting document:", error);
