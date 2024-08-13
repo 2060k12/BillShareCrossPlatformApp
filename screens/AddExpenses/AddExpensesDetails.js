@@ -48,9 +48,35 @@ const AddExpensesDetails = () => {
             const initialPeople = filteredContacts.map((contact) => ({
               name: contact.name,
               phoneNumber: contact.phoneNumbers[0]?.number || "",
-              percentage: "",
             }));
             setInvolvedPeople(initialPeople);
+
+            async function fetchUserData() {
+              try {
+                let userName, phoneNumber;
+                await repository.getCurrentUser(
+                  (name) => {
+                    userName = name;
+                  },
+                  (phone) => {
+                    phoneNumber = phone;
+                  }
+                );
+
+                setInvolvedPeople((prevPeople) => [
+                  ...prevPeople,
+                  {
+                    name: userName,
+                    phoneNumber: phoneNumber,
+                  },
+                ]);
+              } catch (error) {
+                console.error("Error fetching user data:", error);
+              }
+            }
+            print(involvedPeople);
+
+            fetchUserData();
           }
         } else {
           console.log("Contacts permission denied");
@@ -63,10 +89,7 @@ const AddExpensesDetails = () => {
 
   // Add expenses function
   async function addExpenses() {
-    const totalPercentage = involvedPeople.reduce(
-      (acc, person) => acc + parseFloat(person.percentage || 0),
-      0
-    );
+    console.log("Button pressed");
 
     try {
       await repository.addExpenses(
@@ -74,15 +97,10 @@ const AddExpensesDetails = () => {
         details,
         involvedPeople,
         (success) => {
-          try {
-            if (success) {
-              router.push("(tabs)");
-            } else {
-              Alert.alert("Error", "Failed to add expenses");
-            }
-          } catch (callbackError) {
-            console.error("Error in callback:", callbackError);
-            Alert.alert("Error", "An unexpected error occurred");
+          if (success) {
+            router.push("(tabs)");
+          } else {
+            Alert.alert("Error", "Failed to add expenses");
           }
         }
       );
@@ -101,7 +119,6 @@ const AddExpensesDetails = () => {
     navigation.setOptions({
       headerShown: true,
       title: "Add Expenses",
-      headerRight: () => <Button onPress={addExpenses} title="Add" />,
     });
   }, [navigation, amount, details, involvedPeople]);
 
@@ -150,7 +167,7 @@ const AddExpensesDetails = () => {
         keyExtractor={(item) => item.id}
         renderItem={renderContact}
       />
-      <Button title="Add Expenses" onPress={addExpenses} />
+      <Button onPress={addExpenses} title="Add" />
     </KeyboardAvoidingView>
   );
 };

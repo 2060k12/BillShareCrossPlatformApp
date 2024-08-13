@@ -6,6 +6,7 @@ import {
   doc,
   collection,
   setDoc,
+  getDoc,
   getDocs,
   updateDoc,
 } from "firebase/firestore";
@@ -26,50 +27,64 @@ class Repository {
   }
 
   // Method to add expenses
-  async addExpenses(amount, details, peopleInvolved, success) {
-    try {
-      const formattedPeopleInvolved = peopleInvolved.map((person) => ({
-        name: person.name,
-        percentage: person.percentage,
-        phoneNumber: person.phoneNumber,
-      }));
 
-      formattedPeopleInvolved.forEach(async (each) => {
-        const phoneNumber = each.phoneNumber
+  async addExpenses(amount, details, peopleInvolved, success) {
+    // Format people involved
+    const formattedPeopleInvolved = peopleInvolved.map((person) => ({
+      name: person.name || "", // Ensure fields are not undefined
+      percentage: person.percentage || 0, // Default to 0 if undefined
+      phoneNumber: person.phoneNumber || "", // Default to empty string if undefined
+    }));
+
+    // Calculate amount per person
+    const amountPerPerson = parseFloat(amount) / formattedPeopleInvolved.length;
+
+    try {
+      // Debugging: Log the data being used
+      console.log("Formatted People Involved:", formattedPeopleInvolved);
+      console.log("Amount Per Person:", amountPerPerson);
+
+      // Process each person asynchronously
+      const promises = formattedPeopleInvolved.map(async (each) => {
+        let phoneNumber = each.phoneNumber
           .replace("(", "")
           .replace(")", "")
           .replace(" ", "")
           .replace("-", "");
+
         if (phoneNumber.startsWith("+61")) {
           phoneNumber = phoneNumber.slice(3);
+          if (!phoneNumber.startsWith("0")) {
+            phoneNumber = "0" + phoneNumber;
+          }
         }
 
-        try {
-          const dbRef = await addDoc(
-            collection(this.db, "Users", phoneNumber, "pay"),
-            {
-              details: details,
-              amount: (each.percentage * amount) / 100,
-              peopleInvolved: formattedPeopleInvolved,
-            }
-          );
-          success(true);
-        } catch (error) {
-          console.error("Error adding document: ", error);
-        }
-      });
-      const dbRef = await addDoc(
-        collection(this.db, "Users", "iampranish@Outlook.com", "receive"),
-        {
-          otherUsers: "Pranish Pathak",
-          details: details,
-          amount: amount,
+        // Debugging: Log the phone number being used
+        console.log("Phone Number:", phoneNumber);
+
+        // Add document to 'pay' subcollection
+        await addDoc(collection(this.db, "Users", phoneNumber, "pay"), {
+          details: details || "", // Default to empty string if undefined
+          amount: amountPerPerson || 0, // Default to 0 if undefined
           peopleInvolved: formattedPeopleInvolved,
-        }
-      );
+        });
+      });
+
+      // Add document to 'receive' collection for a specific user
+      await addDoc(collection(this.db, "Users", "0412524317", "receive"), {
+        details: details || "", // Default to empty string if undefined
+        amount: amount || 0, // Default to 0 if undefined
+        peopleInvolved: formattedPeopleInvolved,
+      });
+
+      // Wait for all promises to complete
+      await Promise.all(promises);
+
+      // All operations succeeded
       success(true);
     } catch (error) {
-      console.error("Error adding document: ", error);
+      console.error("Error adding documents: ", error);
+      success(false);
     }
   }
 
@@ -100,7 +115,7 @@ class Repository {
   async seeAllPayingTransaction() {
     try {
       const dbRef = await getDocs(
-        collection(this.db, "Users", "iampranish@Outlook.com", "pay")
+        collection(this.db, "Users", "0412524317", "pay")
       );
       dbRef.forEach((doc) => {
         const transaction = new Transaction(
@@ -180,6 +195,34 @@ class Repository {
     } catch (error) {
       success(false);
       console.log(error);
+    }
+  }
+
+  async getCurrentUser(username, phoneNumber) {
+    try {
+      // Get current user from Auth
+      const currentUser = this.auth.currentUser;
+
+      if (currentUser) {
+        // Reference to the user's document in Firestore
+        const userDocRef = doc(this.db, "Users", "0412524317");
+
+        // Fetch the document
+        const userDoc = await getDoc(userDocRef);
+
+        if (userDoc.exists()) {
+          // Extract the phone field and name from the document
+          const userData = userDoc.data();
+          print(userData);
+          username(userData.name);
+          phoneNumber(userData.phoneNumber);
+        } else {
+          console.log("No such document!");
+        }
+      }
+    } catch (error) {
+      console.error("Error getting document:", error);
+      return null;
     }
   }
 }

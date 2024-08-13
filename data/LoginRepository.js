@@ -31,7 +31,6 @@ class LoginRepository {
           email: email,
         }
       );
-
       // User created successfully, pass true to the result callback
       result(true);
     } catch (error) {
