@@ -1,5 +1,7 @@
 import { router, useNavigation } from "expo-router";
 import { useState, useEffect } from "react";
+import { GestureHandlerRootView } from "react-native-gesture-handler";
+
 import {
   Button,
   View,
@@ -16,6 +18,7 @@ import InputField from "../../components/InputField";
 import Repository from "../../data/repository";
 import { useRoute } from "@react-navigation/native";
 import * as Contacts from "expo-contacts";
+import { TextInput } from "react-native-gesture-handler";
 
 const AddExpensesDetails = () => {
   const repository = new Repository();
@@ -30,6 +33,7 @@ const AddExpensesDetails = () => {
   const [details, setDetails] = useState("");
   const [involvedPeople, setInvolvedPeople] = useState([]);
   const [loading, setLoading] = useState(false);
+  const [totalPercentage, setTotalPercentage] = useState(0.0);
 
   // Fetch contacts with permission
   useEffect(() => {
@@ -85,33 +89,7 @@ const AddExpensesDetails = () => {
     };
 
     fetchContacts();
-  }, [selectedContactIds]);
-
-  // Add expenses function
-  async function addExpenses() {
-    console.log("Button pressed");
-
-    try {
-      await repository.addExpenses(
-        amount,
-        details,
-        involvedPeople,
-        (success) => {
-          if (success) {
-            router.push("(tabs)");
-          } else {
-            Alert.alert("Error", "Failed to add expenses");
-          }
-        }
-      );
-    } catch (error) {
-      console.error("Error adding expenses:", error);
-      Alert.alert(
-        "Error",
-        "An unexpected error occurred while adding expenses"
-      );
-    }
-  }
+  }, []);
 
   const navigation = useNavigation();
 
@@ -120,76 +98,103 @@ const AddExpensesDetails = () => {
       headerShown: true,
       title: "Add Expenses",
     });
-  }, [navigation, amount, details, involvedPeople]);
-
-  const handlePercentageChange = (phoneNumber, text) => {
-    const updatedPeople = involvedPeople.map((person) =>
-      person.phoneNumber === phoneNumber
-        ? { ...person, percentage: text }
-        : person
-    );
-    setInvolvedPeople(updatedPeople);
-  };
-
-  const renderContact = ({ item }) => (
-    <View style={styles.contactContainer}>
-      <Text style={styles.contactName}>{item.name}</Text>
-      {item.phoneNumbers &&
-        item.phoneNumbers.map((phone, idx) => (
-          <View key={idx}>
-            <Text style={styles.phoneNumber}>{phone.number}</Text>
-            <InputField
-              placeholder="Enter percentage"
-              keyboardType="numeric"
-              onChangeText={(text) =>
-                handlePercentageChange(phone.number, text)
-              }
-            />
-          </View>
-        ))}
-    </View>
-  );
+  }, []);
 
   return (
-    <KeyboardAvoidingView
+    <GestureHandlerRootView
       style={styles.scrollView}
       behavior={Platform.OS === "ios" ? "padding" : "height"}
     >
-      {loading ? (
-        <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color="#31e981" />
-        </View>
-      ) : (
-        <View>
-          <InputField enteredText={amount} onChangeText={setAmount}>
-            Add Amount
-          </InputField>
-          <InputField enteredText={details} onChangeText={setDetails}>
-            Details
-          </InputField>
-          <Text style={styles.header}>Selected People</Text>
-          <FlatList
-            data={contactDetails}
-            keyExtractor={(item) => item.id}
-            renderItem={renderContact}
-          />
-          <Pressable
-            style={styles.button}
-            onPress={async () => {
-              setLoading(true);
-              await addExpenses();
-              setLoading(false);
-            }}
-          >
-            <Text style={styles.buttonText}>Add</Text>
-          </Pressable>
-        </View>
-      )}
-    </KeyboardAvoidingView>
+      <View>
+        <Text>Enter Total Amount</Text>
+        <TextInput
+          style={styles.percentageInput}
+          value={amount}
+          onChangeText={setAmount}
+        />
+      </View>
+
+      <View>
+        <Text>Enter Expenses Details</Text>
+        <TextInput
+          style={styles.percentageInput}
+          value={details}
+          onChangeText={setDetails}
+        />
+      </View>
+
+      <View>
+        <Text>Involved People</Text>
+        {involvedPeople.map((person, index) => (
+          <View key={index} style={styles.contactContainer}>
+            <Text style={styles.contactName}>{person.name}</Text>
+            <Text style={styles.phoneNumber}>{person.phoneNumber}</Text>
+            <InputField
+              placeholder={"Percentage"}
+              keyboardType="numeric" // Ensure numeric input
+              onChangeText={(text) => {
+                const percentage = parseFloat(text) || 0; // Convert to number or default to 0 if NaN
+                const updatedPeople = [...involvedPeople];
+
+                // Subtract old percentage and add the new one
+                const oldPercentage = updatedPeople[index].percentage || 0;
+                updatedPeople[index].percentage = percentage;
+                setInvolvedPeople(updatedPeople);
+                setTotalPercentage(
+                  totalPercentage - oldPercentage + percentage
+                );
+              }}
+            />
+          </View>
+        ))}
+      </View>
+
+      <Button
+        title="Dubug"
+        onPress={() => {
+          console.log("involvedPeople", involvedPeople);
+        }}
+      />
+      <Button
+        title="Add Expenses"
+        onPress={() => {
+          if (!amount || !details) {
+            Alert.alert("Error", "Please enter amount and details");
+            return;
+          }
+
+          if (totalPercentage !== 100) {
+            Alert.alert("Error", "Total percentage should be 100");
+            return;
+          }
+
+          const expenseData = {
+            amount: parseFloat(amount),
+            details,
+            involvedPeople,
+          };
+
+          repository.addExpense(expenseData, (success) => {
+            if (success) {
+              Alert.alert("Success", "Expense added successfully", [
+                {
+                  text: "OK",
+                  onPress: () => navigation.goBack(),
+                },
+              ]);
+            } else {
+              Alert.alert("Error", "Failed to add expense");
+            }
+          });
+        }}
+      />
+    </GestureHandlerRootView>
   );
 };
 
 const styles = StyleSheet.create({
+  button: {},
+
   container: {
     flex: 1,
   },

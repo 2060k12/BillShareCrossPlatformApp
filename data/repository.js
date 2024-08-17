@@ -10,7 +10,11 @@ import {
   getDocs,
   updateDoc,
 } from "firebase/firestore";
-import Transaction from "./Transactions";
+import {
+  Transaction,
+  InvolvedPerson,
+  DetailTransaction,
+} from "../data/Transactions";
 class Repository {
   constructor() {
     // Initialize Firebase app
@@ -22,115 +26,109 @@ class Repository {
     this.currentUser = this.auth.currentUser;
 
     //  array which will hold both receiving and paying transactions of current user
-    this.arrayOfReceivingTransactions = [];
-    this.arrayOfPayingTransactions = [];
+    this.listOfTransactions = [];
   }
 
   // Method to add expenses
-
-  async addExpenses(amount, details, peopleInvolved, success) {
-    // Format people involved
-    const formattedPeopleInvolved = peopleInvolved.map((person) => ({
-      name: person.name || "", // Ensure fields are not undefined
-      percentage: person.percentage || 0, // Default to 0 if undefined
-      phoneNumber: person.phoneNumber || "", // Default to empty string if undefined
-    }));
-
-    // Calculate amount per person
-    const amountPerPerson = parseFloat(amount) / formattedPeopleInvolved.length;
-
+  async addExpense(expenseData, success) {
     try {
-      // Debugging: Log the data being used
-      console.log("Formatted People Involved:", formattedPeopleInvolved);
-      console.log("Amount Per Person:", amountPerPerson);
+      const dbRef = await addDoc(collection(this.db, "expenses"), {
+        amount: expenseData.amount,
+        details: expenseData.details,
+        involvedPeople: expenseData.involvedPeople,
+      });
+      console.log(dbRef.id);
 
-      // Process each person asynchronously
-      const promises = formattedPeopleInvolved.map(async (each) => {
-        let phoneNumber = each.phoneNumber
-          .replace("(", "")
-          .replace(")", "")
-          .replace(" ", "")
-          .replace("-", "");
+      // add this in the transaction of the user
+      for (let i = 0; i < expenseData.involvedPeople.length; i++) {
+        const user = expenseData.involvedPeople[i];
+        const userDocRef = doc(
+          this.db,
+          "Users",
+          user.phoneNumber,
+          "transactions",
+          dbRef.id
+        );
 
-        if (phoneNumber.startsWith("+61")) {
-          phoneNumber = phoneNumber.slice(3);
-          if (!phoneNumber.startsWith("0")) {
-            phoneNumber = "0" + phoneNumber;
-          }
+        if (user.phoneNumber === "0412524317") {
+          await setDoc(userDocRef, {
+            amount: expenseData.amount / expenseData.involvedPeople.length,
+            timeStamp: new Date(),
+            status: "receive",
+            details: expenseData.details,
+          });
+        } else {
+          await setDoc(userDocRef, {
+            amount: expenseData.amount / expenseData.involvedPeople.length,
+            timeStamp: new Date(),
+            status: "pay",
+            details: expenseData.details,
+          });
         }
+      }
 
-        // Debugging: Log the phone number being used
-        console.log("Phone Number:", phoneNumber);
-
-        // Add document to 'pay' subcollection
-        await addDoc(collection(this.db, "Users", phoneNumber, "pay"), {
-          details: details || "", // Default to empty string if undefined
-          amount: amountPerPerson || 0, // Default to 0 if undefined
-          peopleInvolved: formattedPeopleInvolved,
-        });
-      });
-
-      // Add document to 'receive' collection for a specific user
-      await addDoc(collection(this.db, "Users", "0412524317", "receive"), {
-        details: details || "", // Default to empty string if undefined
-        amount: amount || 0, // Default to 0 if undefined
-        peopleInvolved: formattedPeopleInvolved,
-      });
-
-      // Wait for all promises to complete
-      await Promise.all(promises);
-
-      // All operations succeeded
       success(true);
     } catch (error) {
-      console.error("Error adding documents: ", error);
+      console.log(error);
       success(false);
     }
   }
 
   // Method to see all transactions of a user
-  async seeAllReceivingTransaction() {
+  async getAllTransactions() {
     try {
       const dbRef = await getDocs(
-        collection(this.db, "Users", "0412524317", "receive")
+        collection(this.db, "Users", "0412524317", "transactions")
       );
       dbRef.forEach((doc) => {
         const transaction = new Transaction(
           doc.data().amount,
-          doc.data().otherUsers,
           doc.data().timeStamp,
           doc.data().status,
           doc.id,
           doc.data().details
         );
 
-        this.arrayOfReceivingTransactions.push(transaction);
+        this.listOfTransactions.push(transaction);
       });
     } catch (error) {
       console.log(error);
     }
   }
 
-  // Method to see all transactions of a user
-  async seeAllPayingTransaction() {
+  async getTransactionDetails(id, success) {
     try {
-      const dbRef = await getDocs(
-        collection(this.db, "Users", "0412524317", "pay")
-      );
-      dbRef.forEach((doc) => {
-        const transaction = new Transaction(
-          doc.data().amount,
-          doc.data().otherUsers,
-          doc.data().timeStamp,
-          doc.data().status,
-          doc.id,
-          doc.data().details
+      const dbRef = doc(this.db, "expenses", id);
+      const docSnap = await getDoc(dbRef);
+
+      if (docSnap.exists()) {
+        const data = docSnap.data();
+
+        // Create instances of InvolvedPerson
+        const involvedPeople = data.involvedPeople.map(
+          (person) =>
+            new InvolvedPerson(
+              person.name,
+              person.phoneNumber,
+              person.percentage
+            )
         );
 
-        this.arrayOfPayingTransactions.push(transaction);
-      });
+        // Create an instance of DetailTransaction
+        const detailTransaction = new DetailTransaction(
+          data.amount,
+          data.details,
+          involvedPeople
+        );
+
+        success(detailTransaction);
+      } else {
+        console.log("No such document!");
+        success(null);
+      }
     } catch (error) {
       console.log(error);
+      success(null);
     }
   }
 
@@ -159,7 +157,7 @@ class Repository {
   // remove transaction
   async removeTransaction(type, id, success) {
     try {
-      const docRef = doc(this.db, "Users", "iampranish@Outlook.com", type, id);
+      const docRef = doc(this.db, "Users", "0412524317", type, id);
       await deleteDoc(docRef);
       success(true);
     } catch (error) {
@@ -167,23 +165,34 @@ class Repository {
     }
   }
 
-  // update amount
+  // Update amount for a transaction
   async updateAmount(id, newAmount, success) {
     try {
-      const dbRef = doc(
-        this.db,
-        "Users",
-        "iampranish@Outlook.com",
-        "receive",
-        id
-      );
-      await updateDoc(dbRef, {
-        amount: newAmount,
-      });
+      const dbRef = doc(this.db, "Users", "0412524317", "transactions", id);
+      await updateDoc(dbRef, { amount: newAmount });
+
+      const expensesRef = doc(this.db, "expenses", id);
+      await updateDoc(expensesRef, { amount: newAmount });
+
       success(true);
     } catch (error) {
       success(false);
-      console.log(error);
+      console.error("Error updating amount:", error);
+    }
+  }
+  // Update involved people for a transaction
+  async updateInvolvedPeople(id, involvedPeople, success) {
+    try {
+      const dbRef = doc(this.db, "Users", "0412524317", "transactions", id);
+      await updateDoc(dbRef, { involvedPeople });
+
+      const expensesRef = doc(this.db, "expenses", id);
+      await updateDoc(expensesRef, { involvedPeople });
+
+      success(true);
+    } catch (error) {
+      success(false);
+      console.error("Error updating involved people:", error);
     }
   }
 

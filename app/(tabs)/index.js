@@ -13,21 +13,8 @@ const HomePage = () => {
 
   async function fetchTransactions() {
     try {
-      await repository.seeAllPayingTransaction();
-      await repository.seeAllReceivingTransaction();
-
-      const combinedTransactions = [
-        ...repository.arrayOfReceivingTransactions.map((item) => ({
-          ...item,
-          type: "receiving",
-        })),
-        ...repository.arrayOfPayingTransactions.map((item) => ({
-          ...item,
-          type: "paying",
-        })),
-      ];
-
-      setTransactions(combinedTransactions);
+      await repository.getAllTransactions();
+      setTransactions(repository.listOfTransactions);
     } catch (error) {
       console.error("Error fetching transactions:", error);
     }
@@ -37,51 +24,47 @@ const HomePage = () => {
     fetchTransactions();
   }, []);
 
-  const renderItem = ({ item }) => {
-    const isReceiving = item.type === "receiving";
-    return (
-      <View
-        style={[
-          styles.transactionCard,
-          { borderColor: isReceiving ? "#007BFF" : "#FF6F61" }, // Blue for receiving, Coral for paying
-        ]}
-      >
-        <Pressable
-          onPress={() => {
-            if (isReceiving) {
-              router.push({
-                pathname: `/expensesDetails/${item.id}`,
-                params: item,
-              });
-            }
-          }}
-          style={styles.pressableContent}
-          android_ripple={{ color: "rgba(0, 0, 0, 0.1)" }}
-        >
-          <View style={styles.transactionContent}>
-            <FontAwesome
-              name={isReceiving ? "arrow-down" : "arrow-up"}
-              size={24}
-              color={isReceiving ? "#007BFF" : "#FF6F61"}
-              style={styles.icon}
-            />
-            <View style={styles.textContainer}>
-              <Text style={styles.transactionText}>{item.otherUsers}</Text>
-              <Text style={styles.transactionAmount}>$ {item.amount}</Text>
-            </View>
-          </View>
-        </Pressable>
-      </View>
-    );
+  const handleNavigate = (transaction) => {
+    router.push({
+      pathname: `/expensesDetails/${transaction.id}`,
+      params: {
+        transaction: JSON.stringify(transaction), // Pass as JSON string
+      },
+    });
   };
+
+  const renderItem = ({ item }) => (
+    <Pressable
+      style={styles.transactionCard}
+      onPress={() => handleNavigate(item)} // Use handleNavigate
+    >
+      <View style={styles.pressableContent}>
+        {item.status === "receive" ? (
+          <FontAwesome
+            name="money"
+            size={40}
+            color="green"
+            style={styles.icon}
+          />
+        ) : (
+          <FontAwesome name="money" size={40} color="red" style={styles.icon} />
+        )}
+        <View style={styles.textContainer}>
+          <Text style={styles.transactionText}>{item.title}</Text>
+          <Text style={styles.transactionAmount}>${item.amount}</Text>
+        </View>
+      </View>
+    </Pressable>
+  );
 
   return (
     <View style={styles.container}>
       <Text style={styles.titleStyle}>Transactions</Text>
       <FlatList
-        keyExtractor={(item) => item.id}
         data={transactions}
         renderItem={renderItem}
+        keyExtractor={(item) => item.id}
+        showsVerticalScrollIndicator={false}
       />
     </View>
   );
@@ -94,13 +77,13 @@ const styles = StyleSheet.create({
     flex: 1,
     marginHorizontal: 16,
     marginTop: 16,
-    backgroundColor: "#F4F4F4", // Light gray background for a clean look
+    backgroundColor: "#F4F4F4",
   },
   titleStyle: {
     fontWeight: "bold",
     fontSize: 28,
     marginBottom: 16,
-    color: "#333", // Darker text for contrast
+    color: "#333",
   },
   transactionCard: {
     flexDirection: "row",
@@ -109,9 +92,9 @@ const styles = StyleSheet.create({
     borderWidth: 2,
     marginVertical: 8,
     padding: 16,
-    backgroundColor: "#FFFFFF", // White background for cards
-    elevation: 2, // Shadow for Android
-    shadowColor: "#000", // Shadow color for iOS
+    backgroundColor: "#FFFFFF",
+    elevation: 2,
+    shadowColor: "#000",
     shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.1,
     shadowRadius: 4,
@@ -121,23 +104,18 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
   },
-  transactionContent: {
-    flexDirection: "row",
-    alignItems: "center",
-    flex: 1,
-  },
   textContainer: {
     flex: 1,
     marginLeft: 12,
   },
   transactionText: {
     fontSize: 18,
-    color: "#333", // Darker text for readability
+    color: "#333",
   },
   transactionAmount: {
     fontSize: 16,
     marginTop: 4,
-    color: "#555", // Slightly lighter color for amount
+    color: "#555",
   },
   icon: {
     marginRight: 12,
