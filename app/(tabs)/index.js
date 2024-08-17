@@ -1,22 +1,34 @@
 import { useContext, useEffect, useState } from "react";
-import { View, Text, FlatList, StyleSheet, Pressable } from "react-native";
+import {
+  View,
+  Text,
+  FlatList,
+  StyleSheet,
+  Pressable,
+  ActivityIndicator,
+} from "react-native";
 import { FirestoreContext } from "../../contexts/FireStoreContext";
 import Repository from "../../data/repository";
 import { useRouter } from "expo-router";
-import { FontAwesome } from "@expo/vector-icons";
+import { FontAwesome, MaterialIcons } from "@expo/vector-icons";
 
 const HomePage = () => {
   const router = useRouter();
   const db = useContext(FirestoreContext);
   const repository = new Repository();
   const [transactions, setTransactions] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [refreshing, setRefreshing] = useState(false);
 
   async function fetchTransactions() {
     try {
+      setLoading(true);
       await repository.getAllTransactions();
       setTransactions(repository.listOfTransactions);
+      setLoading(false);
     } catch (error) {
       console.error("Error fetching transactions:", error);
+      setLoading(false);
     }
   }
 
@@ -24,30 +36,44 @@ const HomePage = () => {
     fetchTransactions();
   }, []);
 
+  const handleRefresh = async () => {
+    setRefreshing(true);
+    await fetchTransactions();
+    setRefreshing(false);
+  };
+
   const handleNavigate = (transaction) => {
     router.push({
       pathname: `/expensesDetails/${transaction.id}`,
       params: {
-        transaction: JSON.stringify(transaction), // Pass as JSON string
+        transaction: JSON.stringify(transaction),
       },
     });
   };
 
   const renderItem = ({ item }) => (
     <Pressable
-      style={styles.transactionCard}
-      onPress={() => handleNavigate(item)} // Use handleNavigate
+      style={[
+        styles.transactionCard,
+        item.status === "receive" ? styles.receiveCard : styles.payCard,
+      ]}
+      onPress={() => handleNavigate(item)}
     >
       <View style={styles.pressableContent}>
         {item.status === "receive" ? (
-          <FontAwesome
-            name="money"
+          <MaterialIcons
+            name="attach-money"
             size={40}
             color="green"
             style={styles.icon}
           />
         ) : (
-          <FontAwesome name="money" size={40} color="red" style={styles.icon} />
+          <MaterialIcons
+            name="money-off"
+            size={40}
+            color="red"
+            style={styles.icon}
+          />
         )}
         <View style={styles.textContainer}>
           <Text style={styles.transactionText}>{item.title}</Text>
@@ -57,6 +83,11 @@ const HomePage = () => {
     </Pressable>
   );
 
+  const renderFooter = () => {
+    if (!loading) return null;
+    return <ActivityIndicator size="large" color="#0000ff" />;
+  };
+
   return (
     <View style={styles.container}>
       <Text style={styles.titleStyle}>Transactions</Text>
@@ -65,6 +96,9 @@ const HomePage = () => {
         renderItem={renderItem}
         keyExtractor={(item) => item.id}
         showsVerticalScrollIndicator={false}
+        refreshing={refreshing}
+        onRefresh={handleRefresh}
+        ListFooterComponent={renderFooter}
       />
     </View>
   );
@@ -89,15 +123,20 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     borderRadius: 12,
-    borderWidth: 2,
     marginVertical: 8,
     padding: 16,
     backgroundColor: "#FFFFFF",
-    elevation: 2,
+    elevation: 3,
     shadowColor: "#000",
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.1,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
     shadowRadius: 4,
+  },
+  receiveCard: {
+    backgroundColor: "#E8F5E9",
+  },
+  payCard: {
+    backgroundColor: "#FFEBEE",
   },
   pressableContent: {
     flex: 1,

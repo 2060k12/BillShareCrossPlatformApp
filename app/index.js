@@ -5,11 +5,7 @@ import { AuthContext } from "../contexts/AuthContext";
 
 const HomePage = () => {
   const auth = useContext(AuthContext);
-  useEffect(() => {
-    // if (auth.currentUser != null) {
-    //   router.replace("/(tabs)");
-    // }
-  }, []);
+  useEffect(() => {}, []);
 
   return (
     <View>

@@ -22,6 +22,13 @@ const ExpensesDetailScreen = () => {
   const { id, transaction } = useLocalSearchParams();
   const parsedTransaction = JSON.parse(transaction);
 
+  const calculateTotalPercentage = (people) => {
+    return people.reduce(
+      (total, person) => total + (parseFloat(person.percentage) || 0),
+      0
+    );
+  };
+
   const [editMode, setEditMode] = useState(false);
   const [amount, setAmount] = useState(parsedTransaction.amount);
   const [transactionsFullInfo, setTransactionsFullInfo] = useState(null);
@@ -82,6 +89,10 @@ const ExpensesDetailScreen = () => {
     }
   };
 
+  const totalPercentage = transactionsFullInfo?.involvedPeople
+    ? calculateTotalPercentage(transactionsFullInfo.involvedPeople)
+    : 0;
+
   const formattedTimestamp = parsedTransaction.timeStamp
     ? format(new Date(parsedTransaction.timeStamp.seconds * 1000), "PPpp")
     : "Unknown";
@@ -97,6 +108,18 @@ const ExpensesDetailScreen = () => {
             </Text>
             <Text style={styles.timestampText}>{formattedTimestamp}</Text>
           </View>
+          {totalPercentage !== 100 && (
+            <Text style={styles.errorText}>
+              Total percentage is not 100%. Please adjust.
+            </Text>
+          )}
+          <Text style={styles.iOweText}>
+            {totalPercentage === 100
+              ? `What I Owe: AU$${parseFloat(parsedTransaction.amount).toFixed(
+                  2
+                )}`
+              : "Please correct the percentages"}
+          </Text>
         </View>
 
         <View style={styles.bodyContainer}>
@@ -182,44 +205,76 @@ const ExpensesDetailScreen = () => {
               Enter New Amount
             </InputField.default>
 
-            <FlatList
-              data={transactionsFullInfo?.involvedPeople || []}
-              renderItem={({ item }) => (
-                <View style={styles.personContainer}>
+            {transactionsFullInfo?.involvedPeople.map((item) => (
+              <View key={item.phoneNumber} style={styles.personCard}>
+                <View style={styles.personInfo}>
                   <Text style={styles.personName}>{item.name}</Text>
                   <Text style={styles.personPhone}>{item.phoneNumber}</Text>
-                  <TextInput
-                    style={styles.input}
-                    value={
-                      editPerson && editPerson.phoneNumber === item.phoneNumber
-                        ? newPercentage
-                        : item.percentage.toString()
-                    }
-                    onChangeText={(text) => {
-                      if (
-                        editPerson &&
-                        editPerson.phoneNumber === item.phoneNumber
-                      ) {
-                        setNewPercentage(text);
-                      }
-                    }}
-                    keyboardType="numeric"
-                    placeholder="New Percentage"
-                  />
+                </View>
+                <Text style={styles.personPercentage}>{item.percentage}%</Text>
+                {editMode && (
                   <View style={styles.personActions}>
+                    <Button
+                      title="Edit"
+                      onPress={() =>
+                        Alert.prompt(
+                          "Edit Percentage",
+                          `Enter new percentage for ${item.name}`,
+                          (text) => {
+                            if (text) {
+                              const updatedInvolvedPeople =
+                                transactionsFullInfo.involvedPeople.map(
+                                  (person) => {
+                                    if (
+                                      person.phoneNumber === item.phoneNumber
+                                    ) {
+                                      return {
+                                        ...person,
+                                        percentage: parseInt(text, 10),
+                                      };
+                                    }
+                                    return person;
+                                  }
+                                );
+                              setTransactionsFullInfo({
+                                ...transactionsFullInfo,
+                                involvedPeople: updatedInvolvedPeople,
+                              });
+                            }
+                          },
+                          "plain-text",
+                          item.percentage.toString()
+                        )
+                      }
+                    />
                     <Button
                       title="Remove"
                       onPress={() => handleRemovePerson(item.phoneNumber)}
                     />
                   </View>
-                </View>
-              )}
-              keyExtractor={(item) => item.phoneNumber}
-            />
+                )}
+              </View>
+            ))}
 
             <View style={styles.modalButtons}>
               <FilledButton
-                onPress={() => handleSavePersonChanges()}
+                onPress={() => {
+                  repository.updateTransaction(
+                    id,
+                    amount,
+                    transactionsFullInfo.involvedPeople,
+                    (success) => {
+                      if (success) {
+                        setEditMode(false);
+                      } else {
+                        Alert.alert(
+                          "Error",
+                          "Transaction could not be updated."
+                        );
+                      }
+                    }
+                  );
+                }}
                 style={styles.saveButton}
               >
                 Save
@@ -371,5 +426,52 @@ const styles = StyleSheet.create({
   cancelButton: {
     flex: 1,
     marginLeft: 8,
+  },
+
+  personCard: {
+    backgroundColor: "#FFFFFF",
+    borderRadius: 12,
+    padding: 16,
+    elevation: 4,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 6,
+    marginBottom: 16,
+  },
+
+  personInfo: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+  },
+
+  personName: {
+    fontSize: 18,
+    fontWeight: "bold",
+  },
+
+  personPhone: {
+    fontSize: 16,
+    color: "#555",
+  },
+
+  personPercentage: {
+    fontSize: 16,
+    color: "#888",
+  },
+
+  input: {
+    borderBottomWidth: 1,
+    borderBottomColor: "#DDDDDD",
+    flex: 1,
+    marginRight: 8,
+    padding: 4,
+  },
+
+  personActions: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    marginTop: 8,
   },
 });

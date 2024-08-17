@@ -207,6 +207,23 @@ class Repository {
     }
   }
 
+  async getUserDetails(userId) {
+    const userDoc = await this.firestore.collection("Users").doc(userId).get();
+    return userDoc.exists ? userDoc.data() : null;
+  }
+
+  async uploadProfileImage(userId, imageUri) {
+    const response = await fetch(imageUri);
+    const blob = await response.blob();
+    const ref = this.storage.ref().child(`profileImages/${userId}`);
+    await ref.put(blob);
+    return await ref.getDownloadURL();
+  }
+
+  async updateUserProfile(userId, data) {
+    await this.firestore.collection("Users").doc(userId).update(data);
+  }
+
   async getCurrentUser() {
     try {
       // Get current user from Auth
