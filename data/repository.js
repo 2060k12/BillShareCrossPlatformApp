@@ -18,14 +18,16 @@ import {
   InvolvedPerson,
   DetailTransaction,
 } from "../data/Transactions";
+import { ca } from "date-fns/locale";
 class Repository {
-  constructor() {
+  constructor(auth) {
     // Initialize Firebase app
     this.app = initializeApp(firebaseConfig);
 
     // Initialize Firestore and Auth
     this.db = getFirestore(this.app);
-    this.auth = getAuth(this.app);
+    this.auth = auth || getAuth(this.app);
+
     this.storage = getStorage(this.app);
     this.currentUser = this.auth.currentUser;
 
@@ -56,14 +58,14 @@ class Repository {
           dbRef.id
         );
 
-        if (user.phoneNumber === "0412524317") {
+        if (user.phoneNumber === this.auth.currentUser.displayName) {
           await setDoc(userDocRef, {
             totalAmount: expenseData.amount,
             amount: (expenseData.amount * user.percentage) / 100,
             timeStamp: new Date(),
             status: "receive",
             details: expenseData.details,
-            addedBy: "0412524317",
+            addedBy: this.auth.currentUser.displayName,
           });
         } else {
           await setDoc(userDocRef, {
@@ -72,7 +74,7 @@ class Repository {
             timeStamp: new Date(),
             status: "pay",
             details: expenseData.details,
-            addedBy: "0412524317",
+            addedBy: this.auth.currentUser.displayName,
           });
         }
       }
@@ -87,7 +89,12 @@ class Repository {
   async getSettledTransactions() {
     try {
       const dbRef = await getDocs(
-        collection(this.db, "Users", "0412524317", "settledTransactions")
+        collection(
+          this.db,
+          "Users",
+          this.auth.currentUser.displayName,
+          "settledTransactions"
+        )
       );
       dbRef.forEach((doc) => {
         const transaction = new Transaction(
@@ -111,7 +118,12 @@ class Repository {
   async getAllTransactions() {
     try {
       const dbRef = await getDocs(
-        collection(this.db, "Users", "0412524317", "transactions")
+        collection(
+          this.db,
+          "Users",
+          this.auth.currentUser.displayName,
+          "transactions"
+        )
       );
       dbRef.forEach((doc) => {
         const transaction = new Transaction(
@@ -192,11 +204,17 @@ class Repository {
   // settle transactions
   async settleTransaction(id, success) {
     try {
-      const dbRef = doc(this.db, "Users", "0412524317", "transactions", id);
+      const dbRef = doc(
+        this.db,
+        "Users",
+        this.auth.currentUser.displayName,
+        "transactions",
+        id
+      );
       const newRef = doc(
         this.db,
         "Users",
-        "0412524317",
+        this.auth.currentUser.displayName,
         "settledTransactions",
         id
       );
@@ -218,7 +236,15 @@ class Repository {
   // remove transaction
   async removeTransaction(type, id, success) {
     try {
-      const docRef = doc(this.db, "Users", "0412524317", "transactions", id);
+      console.log(this.auth?.currentUser?.phoneNumber);
+
+      const docRef = doc(
+        this.db,
+        "Users",
+        this.auth.currentUser.displayName,
+        "transactions",
+        id
+      );
       await deleteDoc(docRef);
 
       const expensesRef = doc(this.db, "expenses", id);
@@ -232,7 +258,13 @@ class Repository {
   // Update amount for a transaction
   async updateAmount(id, newAmount, success) {
     try {
-      const dbRef = doc(this.db, "Users", "0412524317", "transactions", id);
+      const dbRef = doc(
+        this.db,
+        "Users",
+        this.auth.currentUser.displayName,
+        "transactions",
+        id
+      );
       await updateDoc(dbRef, { amount: newAmount });
 
       const expensesRef = doc(this.db, "expenses", id);
@@ -247,7 +279,13 @@ class Repository {
   // Update involved people for a transaction
   async updateInvolvedPeople(id, involvedPeople, success) {
     try {
-      const dbRef = doc(this.db, "Users", "0412524317", "transactions", id);
+      const dbRef = doc(
+        this.db,
+        "Users",
+        this.auth.currentUser.displayName,
+        "transactions",
+        id
+      );
       await updateDoc(dbRef, { involvedPeople });
 
       const expensesRef = doc(this.db, "expenses", id);
@@ -302,7 +340,11 @@ class Repository {
 
       if (currentUser) {
         // Reference to the user's document in Firestore
-        const userDocRef = doc(this.db, "Users", "0412524317");
+        const userDocRef = doc(
+          this.db,
+          "Users",
+          this.auth.currentUser.displayName
+        );
 
         // Fetch the document
         const userDoc = await getDoc(userDocRef);

@@ -11,11 +11,17 @@ import { FirestoreContext } from "../../contexts/FireStoreContext";
 import Repository from "../../data/repository";
 import { useRouter } from "expo-router";
 import { FontAwesome, MaterialIcons } from "@expo/vector-icons";
+import { firebaseConfig } from "../../config/firebaseConfig";
+import { initializeApp } from "firebase/app";
+import { getAuth } from "firebase/auth";
 
 const HomePage = () => {
+  const app = initializeApp(firebaseConfig);
+  const auth = getAuth(app);
+
   const router = useRouter();
   const db = useContext(FirestoreContext);
-  const repository = new Repository();
+  const repository = new Repository(auth);
   const [transactions, setTransactions] = useState([]);
   const [loading, setLoading] = useState(false);
   const [refreshing, setRefreshing] = useState(false);

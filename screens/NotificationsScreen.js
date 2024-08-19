@@ -1,20 +1,19 @@
 import React, { useState, useEffect, useCallback } from "react";
-import {
-  View,
-  Text,
-  StyleSheet,
-  Pressable,
-  Alert,
-  FlatList,
-} from "react-native";
+import { View, Text, StyleSheet, Pressable, FlatList } from "react-native";
 import MaterialIcons from "@expo/vector-icons/MaterialIcons";
 import Repository from "../data/repository";
 import { useRouter } from "expo-router";
 import { useFocusEffect } from "@react-navigation/native";
+import { firebaseConfig } from "../config/firebaseConfig";
+import { initializeApp } from "firebase/app";
+import { getAuth } from "firebase/auth";
 
 const NotificationsScreen = () => {
+  const app = initializeApp(firebaseConfig);
+  const auth = getAuth(app);
+
   const [transactions, setTransactions] = useState([]);
-  const repository = new Repository();
+  const repository = new Repository(auth);
   const router = useRouter();
 
   const fetchTransactions = async () => {

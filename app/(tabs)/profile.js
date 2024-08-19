@@ -1,12 +1,17 @@
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect, useCallback, useContext } from "react";
 import { View, Text, StyleSheet, Pressable, Alert, Image } from "react-native";
 import MaterialIcons from "@expo/vector-icons/MaterialIcons";
 import * as ImagePicker from "expo-image-picker";
 import Repository from "../../data/repository";
 import { useRouter } from "expo-router";
 import { useFocusEffect } from "@react-navigation/native";
+import { firebaseConfig } from "../../config/firebaseConfig";
+import { initializeApp } from "firebase/app";
+import { getAuth } from "firebase/auth";
 
 export default function Profile() {
+  const app = initializeApp(firebaseConfig);
+  const auth = getAuth(app);
   const [user, setUser] = useState({
     email: "",
     name: "Loading...",
@@ -18,8 +23,10 @@ export default function Profile() {
 
   const fetchUserDetails = async () => {
     try {
+      console.log("auth", auth.currentUser.email);
+
       console.log("Fetching user details...");
-      const userId = "0412524317";
+      const userId = auth.currentUser.displayName;
       const userData = await repository.getUserDetails(userId);
       console.log("User data fetched:", userData);
       setUser(userData);
@@ -48,12 +55,8 @@ export default function Profile() {
 
   const handleLogout = async () => {
     try {
-      const success = await repository.logOut();
-      if (success) {
-        router.replace("/login"); // Use the correct path for login
-      } else {
-        Alert.alert("Something went wrong", "Please try again later.");
-      }
+      auth.signOut();
+      router.replace("/login/login"); //
     } catch (error) {
       Alert.alert("Error", "Could not log out.");
     }
@@ -105,7 +108,7 @@ export default function Profile() {
         const selectedImageUri = result.assets[0].uri;
 
         // Update user profile image
-        const userId = "0412524317"; // Replace with logic to get the current user's ID
+        const userId = auth.currentUser.displayName; // Replace with logic to get the current user's ID
         const imageUrl = await repository.uploadProfileImage(
           userId,
           selectedImageUri
@@ -113,7 +116,6 @@ export default function Profile() {
 
         // Update user profile in Firestore
         await repository.updateUserProfile(userId, { imageUrl });
-
         // Update state with the new image URL
         setUser((prevUser) => ({
           ...prevUser,
@@ -154,7 +156,23 @@ export default function Profile() {
 
       {/* Logout Button */}
       <View style={styles.logoutContainer}>
-        <Pressable onPress={handleLogout} style={styles.logoutButton}>
+        <Pressable
+          onPress={() => {
+            console.log(auth?.currentUser?.displayName);
+
+            Alert.alert("Log Out", "Are you sure you want to log out?", [
+              {
+                text: "Cancel",
+                style: "cancel",
+              },
+              {
+                text: "Log Out",
+                onPress: handleLogout,
+              },
+            ]);
+          }}
+          style={styles.logoutButton}
+        >
           <Text style={styles.logoutText}>Log Out</Text>
           <MaterialIcons name="logout" size={24} color="black" />
         </Pressable>

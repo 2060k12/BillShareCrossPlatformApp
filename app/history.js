@@ -14,8 +14,14 @@ import Repository from "../data/repository";
 import firebase from "firebase/app"; // Import firebase
 import { FontAwesome } from "@expo/vector-icons";
 import { useNavigation, router } from "expo-router";
+import { firebaseConfig } from "../config/firebaseConfig";
+import { initializeApp } from "firebase/app";
+import { getAuth } from "firebase/auth";
 
 const History = () => {
+  const app = initializeApp(firebaseConfig);
+  const auth = getAuth(app);
+
   const navigation = useNavigation();
   const repository = new Repository();
   const [listOfTransactions, setListOfTransactions] = useState([]);

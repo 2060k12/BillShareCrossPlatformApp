@@ -12,8 +12,13 @@ import {
 } from "react-native";
 import { useRouter, useLocalSearchParams } from "expo-router";
 import Repository from "../data/repository"; // Adjust the path accordingly
+import { firebaseConfig } from "../config/firebaseConfig";
+import { initializeApp } from "firebase/app";
+import { getAuth } from "firebase/auth";
 
 export default function SettingsScreen() {
+  const app = initializeApp(firebaseConfig);
+  const auth = getAuth(app);
   const { user } = useLocalSearchParams();
   const router = useRouter();
 
@@ -32,8 +37,7 @@ export default function SettingsScreen() {
   const [email, setEmail] = useState(parsedUser.email || "");
   const [phoneNumber] = useState(parsedUser.phoneNumber || "");
   const [loading, setLoading] = useState(false); // New loading state
-
-  const repository = new Repository();
+  const repository = new Repository(auth);
 
   const handleSave = async () => {
     console.log("Save button pressed");

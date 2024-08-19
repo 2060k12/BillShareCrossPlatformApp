@@ -1,19 +1,10 @@
 import { router, useNavigation } from "expo-router";
 import { useState, useEffect } from "react";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
-
-import {
-  Button,
-  View,
-  Text,
-  FlatList,
-  StyleSheet,
-  Platform,
-  KeyboardAvoidingView,
-  Pressable,
-  Alert,
-  ActivityIndicator,
-} from "react-native";
+import { firebaseConfig } from "../../config/firebaseConfig";
+import { initializeApp } from "firebase/app";
+import { getAuth } from "firebase/auth";
+import { Button, View, Text, StyleSheet, Platform, Alert } from "react-native";
 import InputField from "../../components/InputField";
 import Repository from "../../data/repository";
 import { useRoute } from "@react-navigation/native";
@@ -21,7 +12,10 @@ import * as Contacts from "expo-contacts";
 import { TextInput } from "react-native-gesture-handler";
 
 const AddExpensesDetails = () => {
-  const repository = new Repository();
+  const app = initializeApp(firebaseConfig);
+  const auth = getAuth(app);
+
+  const repository = new Repository(auth);
   const route = useRoute();
   const { contacts } = route.params || {};
   const selectedContactIds = contacts

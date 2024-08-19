@@ -1,4 +1,8 @@
-import { getAuth, createUserWithEmailAndPassword } from "firebase/auth";
+import {
+  getAuth,
+  createUserWithEmailAndPassword,
+  updateProfile,
+} from "firebase/auth";
 import { firebaseConfig } from "../config/firebaseConfig";
 import { initializeApp } from "firebase/app";
 import { getFirestore, doc, setDoc } from "firebase/firestore";
@@ -21,6 +25,14 @@ class LoginRepository {
         email,
         password
       );
+
+      if (userCredential.user) {
+        await updateProfile(userCredential.user, {
+          displayName: phoneNumber, // Update display name with the actual name
+        });
+
+        console.log("Display name updated successfully!");
+      }
 
       // Signed up, now save the user information in Firestore
       const dbRef = await setDoc(
