@@ -21,6 +21,8 @@ export default function _layout() {
         <Stack.Screen name="login/signUp" />
         <Stack.Screen name="addExpensesDetails" />
         <Stack.Screen name="expensesDetails/[id]" />
+        <Stack.Screen name="setting" />
+        <Stack.Screen name="history" />
       </Stack>
     </AuthContext.Provider>
   );

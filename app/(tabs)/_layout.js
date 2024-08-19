@@ -28,15 +28,6 @@ export default function _layout() {
               ),
             }}
           />
-          <Tabs.Screen
-            name="groups"
-            options={{
-              title: "Groups",
-              tabBarIcon: ({ color }) => (
-                <FontAwesome name="group" size={24} color={color} />
-              ),
-            }}
-          />
 
           <Tabs.Screen
             name="add"

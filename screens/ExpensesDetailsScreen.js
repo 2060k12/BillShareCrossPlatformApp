@@ -104,7 +104,7 @@ const ExpensesDetailScreen = () => {
           <Text style={styles.titleText}>{parsedTransaction.otherUsers}</Text>
           <View style={styles.amountContainer}>
             <Text style={styles.amountText}>
-              AU${parseFloat(parsedTransaction.amount).toFixed(2)}
+              AU${parseFloat(parsedTransaction.totalAmount).toFixed(2)}
             </Text>
             <Text style={styles.timestampText}>{formattedTimestamp}</Text>
           </View>
@@ -159,10 +159,15 @@ const ExpensesDetailScreen = () => {
 
       <View style={styles.buttonContainer}>
         <FilledButton
-          onPress={() => {
-            Alert.alert("Settle Up functionality is not implemented.");
-          }}
           style={styles.settleButton}
+          onPress={() => {
+            repository.settleTransaction(parsedTransaction.id, (success) => {
+              if (success) {
+                Alert.alert("Successfully Settled.");
+                router.push("/(tabs)");
+              }
+            });
+          }}
         >
           Settle Up
         </FilledButton>

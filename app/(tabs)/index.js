@@ -77,6 +77,7 @@ const HomePage = () => {
         )}
         <View style={styles.textContainer}>
           <Text style={styles.transactionText}>{item.title}</Text>
+          <Text style={styles.transactionText}>{item.title}</Text>
           <Text style={styles.transactionAmount}>${item.amount}</Text>
         </View>
       </View>

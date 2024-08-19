@@ -1,39 +1,56 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { View, Text, StyleSheet, Pressable, Alert, Image } from "react-native";
 import MaterialIcons from "@expo/vector-icons/MaterialIcons";
 import * as ImagePicker from "expo-image-picker";
 import Repository from "../../data/repository";
 import { useRouter } from "expo-router";
+import { useFocusEffect } from "@react-navigation/native";
 
 export default function Profile() {
   const [user, setUser] = useState({
-    name: "Pranish Pathak",
+    email: "",
+    name: "Loading...",
     imageUrl:
-      "https://images.unsplash.com/photo-1723441857662-d465a52e78d0?w=800&auto=format&fit=crop&q=60&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxmZWF0dXJlZC1waG90b3MtZmVlZHw1fHx8ZW58MHx8fHx8", // Default empty image URL
+      "https://cdn.pixabay.com/photo/2015/10/05/22/37/blank-profile-picture-973460_960_720.png", // Default empty image URL
   });
   const repository = new Repository();
   const router = useRouter();
 
-  useEffect(() => {
-    // Fetch user details
-    const fetchUserDetails = async () => {
-      try {
-        const userId = "0412524317"; // Replace with the current user's ID
-        const userData = await repository.getUserDetails(userId);
-        setUser(userData);
-      } catch (error) {
-        Alert.alert("Error", "Could not fetch user details.");
-      }
-    };
+  const fetchUserDetails = async () => {
+    try {
+      console.log("Fetching user details...");
+      const userId = "0412524317";
+      const userData = await repository.getUserDetails(userId);
+      console.log("User data fetched:", userData);
+      setUser(userData);
+    } catch (error) {
+      console.error("Error fetching user details:", error);
+      Alert.alert("Error", "Could not fetch user details.");
+    }
+  };
 
+  useEffect(() => {
     fetchUserDetails();
   }, []);
+
+  useFocusEffect(
+    useCallback(() => {
+      fetchUserDetails();
+    }, [])
+  );
+
+  const goToSettings = () => {
+    router.push({
+      pathname: "/settings",
+      params: { user },
+    });
+  };
 
   const handleLogout = async () => {
     try {
       const success = await repository.logOut();
       if (success) {
-        router.replace("/login/login");
+        router.replace("/login"); // Use the correct path for login
       } else {
         Alert.alert("Something went wrong", "Please try again later.");
       }
@@ -48,41 +65,47 @@ export default function Profile() {
         Alert.alert("Contact Us", "Contact support at support@example.com");
         break;
       case "Settings":
-        router.push("/settings");
+        router.push({
+          pathname: "/setting",
+          params: { user: JSON.stringify(user) },
+        });
         break;
-      case "Notifications":
-        router.push("/notifications");
+
+      case "History":
+        router.push("/history");
         break;
+
       default:
         break;
     }
   };
 
   const handleImagePick = async () => {
-    // Request permissions
-    const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
-    if (status !== "granted") {
-      Alert.alert(
-        "Permission required",
-        "We need permission to access your photo library."
-      );
-      return;
-    }
+    try {
+      // Request permissions
+      const { status } =
+        await ImagePicker.requestMediaLibraryPermissionsAsync();
+      if (status !== "granted") {
+        Alert.alert(
+          "Permission required",
+          "We need permission to access your photo library."
+        );
+        return;
+      }
 
-    // Launch image picker
-    const result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ImagePicker.MediaTypeOptions.Images,
-      allowsEditing: true,
-      aspect: [1, 1],
-      quality: 1,
-    });
+      // Launch image picker
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        allowsEditing: true,
+        aspect: [1, 1],
+        quality: 1,
+      });
 
-    if (!result.canceled) {
-      const selectedImageUri = result.uri;
+      if (!result.canceled && result.assets.length > 0) {
+        const selectedImageUri = result.assets[0].uri;
 
-      // Update user profile image
-      try {
-        const userId = "0412524317"; // Replace with the current user's ID
+        // Update user profile image
+        const userId = "0412524317"; // Replace with logic to get the current user's ID
         const imageUrl = await repository.uploadProfileImage(
           userId,
           selectedImageUri
@@ -96,9 +119,9 @@ export default function Profile() {
           ...prevUser,
           imageUrl,
         }));
-      } catch (error) {
-        Alert.alert("Error", "Could not update profile image.");
       }
+    } catch (error) {
+      Alert.alert("Error", "Could not update profile image.");
     }
   };
 
@@ -117,7 +140,7 @@ export default function Profile() {
 
       {/* Options */}
       <View style={styles.optionsContainer}>
-        {["Contact Us", "Settings", "Notifications"].map((option) => (
+        {["Contact Us", "Settings", "History"].map((option) => (
           <Pressable
             key={option}
             style={styles.optionButton}

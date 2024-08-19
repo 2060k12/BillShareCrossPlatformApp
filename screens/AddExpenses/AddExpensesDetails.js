@@ -179,7 +179,7 @@ const AddExpensesDetails = () => {
               Alert.alert("Success", "Expense added successfully", [
                 {
                   text: "OK",
-                  onPress: () => navigation.goBack(),
+                  onPress: () => router.push("/(tabs)"),
                 },
               ]);
             } else {
