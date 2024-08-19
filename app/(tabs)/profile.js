@@ -1,88 +1,118 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback, useContext } from "react";
 import { View, Text, StyleSheet, Pressable, Alert, Image } from "react-native";
 import MaterialIcons from "@expo/vector-icons/MaterialIcons";
 import * as ImagePicker from "expo-image-picker";
 import Repository from "../../data/repository";
 import { useRouter } from "expo-router";
+import { useFocusEffect } from "@react-navigation/native";
+import { firebaseConfig } from "../../config/firebaseConfig";
+import { initializeApp } from "firebase/app";
+import { getAuth } from "firebase/auth";
 
 export default function Profile() {
+  // Initialize Firebase app and auth
+  const app = initializeApp(firebaseConfig);
+  const auth = getAuth(app);
+
+  // Initialize state variables
   const [user, setUser] = useState({
-    name: "Pranish Pathak",
+    email: "",
+    name: "Loading...",
     imageUrl:
-      "https://images.unsplash.com/photo-1723441857662-d465a52e78d0?w=800&auto=format&fit=crop&q=60&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxmZWF0dXJlZC1waG90b3MtZmVlZHw1fHx8ZW58MHx8fHx8", // Default empty image URL
+      "https://cdn.pixabay.com/photo/2015/10/05/22/37/blank-profile-picture-973460_960_720.png", // Default empty image URL
   });
+
+  // Initialize repository and router
   const repository = new Repository();
   const router = useRouter();
 
-  useEffect(() => {
-    // Fetch user details
-    const fetchUserDetails = async () => {
-      try {
-        const userId = "0412524317"; // Replace with the current user's ID
-        const userData = await repository.getUserDetails(userId);
-        setUser(userData);
-      } catch (error) {
-        Alert.alert("Error", "Could not fetch user details.");
-      }
-    };
+  // Fetch user details from Firestore
+  const fetchUserDetails = async () => {
+    try {
+      console.log("auth", auth.currentUser.email);
 
+      console.log("Fetching user details...");
+      const userId = auth.currentUser.displayName;
+      const userData = await repository.getUserDetails(userId);
+      console.log("User data fetched:", userData);
+      setUser(userData);
+    } catch (error) {
+      console.error("Error fetching user details:", error);
+      Alert.alert("Error", "Could not fetch user details.");
+    }
+  };
+
+  // Fetch user details on component mount and focus
+
+  useEffect(() => {
     fetchUserDetails();
   }, []);
 
+  useFocusEffect(
+    useCallback(() => {
+      fetchUserDetails();
+    }, [])
+  );
+
+  // Logout user
   const handleLogout = async () => {
     try {
-      const success = await repository.logOut();
-      if (success) {
-        router.replace("/login/login");
-      } else {
-        Alert.alert("Something went wrong", "Please try again later.");
-      }
+      auth.signOut();
+      router.replace("/login/login"); //
     } catch (error) {
       Alert.alert("Error", "Could not log out.");
     }
   };
 
+  // Handle option press
   const handleOptionPress = (option) => {
     switch (option) {
       case "Contact Us":
         Alert.alert("Contact Us", "Contact support at support@example.com");
         break;
       case "Settings":
-        router.push("/settings");
+        router.push({
+          pathname: "/setting",
+          params: { user: JSON.stringify(user) },
+        });
         break;
-      case "Notifications":
-        router.push("/notifications");
+
+      case "History":
+        router.push("/history");
         break;
+
       default:
         break;
     }
   };
 
+  // Handle image pick
   const handleImagePick = async () => {
-    // Request permissions
-    const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
-    if (status !== "granted") {
-      Alert.alert(
-        "Permission required",
-        "We need permission to access your photo library."
-      );
-      return;
-    }
+    try {
+      // Request permissions
+      const { status } =
+        await ImagePicker.requestMediaLibraryPermissionsAsync();
+      if (status !== "granted") {
+        Alert.alert(
+          "Permission required",
+          "We need permission to access your photo library."
+        );
+        return;
+      }
 
-    // Launch image picker
-    const result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ImagePicker.MediaTypeOptions.Images,
-      allowsEditing: true,
-      aspect: [1, 1],
-      quality: 1,
-    });
+      // Launch image picker
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        allowsEditing: true,
+        aspect: [1, 1],
+        quality: 1,
+      });
 
-    if (!result.canceled) {
-      const selectedImageUri = result.uri;
+      if (!result.canceled && result.assets.length > 0) {
+        const selectedImageUri = result.assets[0].uri;
 
-      // Update user profile image
-      try {
-        const userId = "0412524317"; // Replace with the current user's ID
+        // Update user profile image
+        const userId = auth.currentUser.displayName;
         const imageUrl = await repository.uploadProfileImage(
           userId,
           selectedImageUri
@@ -90,15 +120,14 @@ export default function Profile() {
 
         // Update user profile in Firestore
         await repository.updateUserProfile(userId, { imageUrl });
-
         // Update state with the new image URL
         setUser((prevUser) => ({
           ...prevUser,
           imageUrl,
         }));
-      } catch (error) {
-        Alert.alert("Error", "Could not update profile image.");
       }
+    } catch (error) {
+      Alert.alert("Error", "Could not update profile image.");
     }
   };
 
@@ -117,7 +146,7 @@ export default function Profile() {
 
       {/* Options */}
       <View style={styles.optionsContainer}>
-        {["Contact Us", "Settings", "Notifications"].map((option) => (
+        {["Contact Us", "Settings", "History"].map((option) => (
           <Pressable
             key={option}
             style={styles.optionButton}
@@ -131,7 +160,23 @@ export default function Profile() {
 
       {/* Logout Button */}
       <View style={styles.logoutContainer}>
-        <Pressable onPress={handleLogout} style={styles.logoutButton}>
+        <Pressable
+          onPress={() => {
+            console.log(auth?.currentUser?.displayName);
+
+            Alert.alert("Log Out", "Are you sure you want to log out?", [
+              {
+                text: "Cancel",
+                style: "cancel",
+              },
+              {
+                text: "Log Out",
+                onPress: handleLogout,
+              },
+            ]);
+          }}
+          style={styles.logoutButton}
+        >
           <Text style={styles.logoutText}>Log Out</Text>
           <MaterialIcons name="logout" size={24} color="black" />
         </Pressable>
@@ -140,6 +185,7 @@ export default function Profile() {
   );
 }
 
+// Styles
 const styles = StyleSheet.create({
   container: {
     flex: 1,

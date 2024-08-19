@@ -1,5 +1,7 @@
 import { useContext, useState } from "react";
+
 import {
+  Image,
   Text,
   View,
   Alert,
@@ -15,8 +17,9 @@ import RegisterScreen from "./RegisterScreen.js";
 import * as InputField from "../components/InputField.js";
 
 export default function LoginScreen() {
-  const [email, setEmail] = useState("iampranish@Outlook.com");
-  const [password, setpassword] = useState("123456789");
+  // state of email and password
+  const [email, setEmail] = useState("");
+  const [password, setpassword] = useState("");
 
   // state of register page
   const [registerPageView, setregisterPageView] = useState(false);
@@ -45,7 +48,9 @@ export default function LoginScreen() {
 
   return (
     <SafeAreaView style={styles.container}>
-      <Text style={styles.title}>Login to Continue</Text>
+      <Image source={require("../assets/icon.png")} style={styles.image} />
+      <Text style={styles.title}>Login to Continue,</Text>
+
       <View style={styles.inputContainer}>
         <InputField.EmailField
           enteredText={email}
@@ -110,8 +115,9 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 24,
     fontWeight: "bold",
-    textAlign: "center",
-    marginBottom: 24,
+
+    paddingHorizontal: 16,
+    marginTop: 16,
   },
   inputContainer: {
     margin: 16,
@@ -141,5 +147,12 @@ const styles = StyleSheet.create({
     padding: 12,
     borderRadius: 8,
     marginVertical: 8,
+  },
+
+  image: {
+    width: 400,
+    height: 300,
+    borderRadius: 20,
+    alignSelf: "center",
   },
 });

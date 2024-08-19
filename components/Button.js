@@ -21,10 +21,8 @@ const styles = StyleSheet.create({
   filledButtonuttonContainer: {
     paddingVertical: 10,
     paddingHorizontal: 16,
-    backgroundColor: "black",
+    backgroundColor: "#00A8e8",
     marginVertical: 4,
-    borderWidth: 1,
-    borderColor: "black",
     borderRadius: 5,
   },
   filledButtonText: {
@@ -37,7 +35,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     marginVertical: 4,
     borderWidth: 1,
-    borderColor: "black",
+    borderColor: "#ccc",
     borderRadius: 5,
   },
   outlinedButtonText: {
