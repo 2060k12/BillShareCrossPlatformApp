@@ -17,13 +17,18 @@ import { initializeApp } from "firebase/app";
 import { getAuth } from "firebase/auth";
 
 export default function SettingsScreen() {
+  // Initialize Firebase app and auth
   const app = initializeApp(firebaseConfig);
   const auth = getAuth(app);
+
+  // Initialize router and local search params
   const { user } = useLocalSearchParams();
   const router = useRouter();
 
+  // Parse user data
   const parsedUser = typeof user === "string" ? JSON.parse(user) : user;
 
+  // Check if user data is available
   if (!parsedUser || typeof parsedUser !== "object") {
     console.error("User data is undefined or not an object");
     return (
@@ -33,18 +38,21 @@ export default function SettingsScreen() {
     );
   }
 
+  // Initialize state variables
   const [name, setName] = useState(parsedUser.name || "");
   const [email, setEmail] = useState(parsedUser.email || "");
   const [phoneNumber] = useState(parsedUser.phoneNumber || "");
   const [loading, setLoading] = useState(false); // New loading state
   const repository = new Repository(auth);
 
+  // Handle save button press
   const handleSave = async () => {
     console.log("Save button pressed");
     if (!name || !email) {
       Alert.alert("Error", "Name and Email fields are required.");
       return;
     }
+    // Set loading to true when save starts
     setLoading(true); // Set loading to true when save starts
 
     try {
@@ -64,6 +72,7 @@ export default function SettingsScreen() {
     }
   };
 
+  // Handle edit button press
   const handleEdit = (field, value, setValue) => {
     console.log(`Edit ${field} button pressed`);
     Alert.prompt(
@@ -137,6 +146,7 @@ export default function SettingsScreen() {
   );
 }
 
+// Styles
 const styles = StyleSheet.create({
   container: {
     flex: 1,

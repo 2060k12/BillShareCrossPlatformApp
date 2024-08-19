@@ -10,17 +10,23 @@ import { initializeApp } from "firebase/app";
 import { getAuth } from "firebase/auth";
 
 export default function Profile() {
+  // Initialize Firebase app and auth
   const app = initializeApp(firebaseConfig);
   const auth = getAuth(app);
+
+  // Initialize state variables
   const [user, setUser] = useState({
     email: "",
     name: "Loading...",
     imageUrl:
       "https://cdn.pixabay.com/photo/2015/10/05/22/37/blank-profile-picture-973460_960_720.png", // Default empty image URL
   });
+
+  // Initialize repository and router
   const repository = new Repository();
   const router = useRouter();
 
+  // Fetch user details from Firestore
   const fetchUserDetails = async () => {
     try {
       console.log("auth", auth.currentUser.email);
@@ -36,6 +42,8 @@ export default function Profile() {
     }
   };
 
+  // Fetch user details on component mount and focus
+
   useEffect(() => {
     fetchUserDetails();
   }, []);
@@ -46,13 +54,7 @@ export default function Profile() {
     }, [])
   );
 
-  const goToSettings = () => {
-    router.push({
-      pathname: "/settings",
-      params: { user },
-    });
-  };
-
+  // Logout user
   const handleLogout = async () => {
     try {
       auth.signOut();
@@ -62,6 +64,7 @@ export default function Profile() {
     }
   };
 
+  // Handle option press
   const handleOptionPress = (option) => {
     switch (option) {
       case "Contact Us":
@@ -83,6 +86,7 @@ export default function Profile() {
     }
   };
 
+  // Handle image pick
   const handleImagePick = async () => {
     try {
       // Request permissions
@@ -108,7 +112,7 @@ export default function Profile() {
         const selectedImageUri = result.assets[0].uri;
 
         // Update user profile image
-        const userId = auth.currentUser.displayName; // Replace with logic to get the current user's ID
+        const userId = auth.currentUser.displayName;
         const imageUrl = await repository.uploadProfileImage(
           userId,
           selectedImageUri
@@ -181,6 +185,7 @@ export default function Profile() {
   );
 }
 
+// Styles
 const styles = StyleSheet.create({
   container: {
     flex: 1,

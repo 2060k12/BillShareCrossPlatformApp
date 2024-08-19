@@ -6,12 +6,14 @@ import {
   FlatList,
   TouchableOpacity,
   StyleSheet,
+  Alert,
 } from "react-native";
 import InputField from "../../components/InputField";
 import { useNavigation } from "@react-navigation/native";
 import * as Contacts from "expo-contacts";
 
 const AddExpenses = () => {
+  // State variables
   const [search, setSearch] = useState("");
   const [contactsList, setContactsList] = useState([]);
   const [selectedContacts, setSelectedContacts] = useState(new Set());
@@ -19,18 +21,29 @@ const AddExpenses = () => {
 
   // Function called when the Add button is pressed
   const addButtonListener = () => {
+    if (selectedContacts.size === 0) {
+      Alert.alert(
+        "No contacts selected",
+        "Please select at least one contact."
+      );
+      return;
+    }
+
+    // Navigate to the next screen with selected contacts
     console.log(selectedContacts);
     navigation.navigate("addExpensesDetails", {
       contacts: JSON.stringify(Array.from(selectedContacts)),
     });
   };
 
+  // Set the header button to Add
   useLayoutEffect(() => {
     navigation.setOptions({
       headerRight: () => <Button title="Add" onPress={addButtonListener} />,
     });
   }, [navigation, selectedContacts]);
 
+  // Fetch contacts from the device
   useEffect(() => {
     (async () => {
       try {
@@ -57,6 +70,7 @@ const AddExpenses = () => {
     })();
   }, []);
 
+  // Function to handle contact selection
   const handleSelectContact = (contact) => {
     setSelectedContacts((prevSelected) => {
       const newSelected = new Set(prevSelected);
@@ -69,6 +83,7 @@ const AddExpenses = () => {
     });
   };
 
+  // Render each contact in the list
   const renderContact = ({ item }) => (
     <TouchableOpacity
       style={[
@@ -107,6 +122,8 @@ const AddExpenses = () => {
   );
 };
 
+// Styles
+
 const styles = StyleSheet.create({
   container: {
     flex: 1,
@@ -122,7 +139,7 @@ const styles = StyleSheet.create({
     borderBottomColor: "#ccc",
   },
   selectedContact: {
-    backgroundColor: "#e0f7fa", // Highlight color for selected contacts
+    backgroundColor: "#31e981",
   },
   contactName: {
     fontSize: 18,

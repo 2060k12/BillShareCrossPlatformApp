@@ -19,16 +19,22 @@ import { initializeApp } from "firebase/app";
 import { getAuth } from "firebase/auth";
 
 const History = () => {
+  // Initialize Firebase app and auth
   const app = initializeApp(firebaseConfig);
   const auth = getAuth(app);
 
+  // Initialize navigation
   const navigation = useNavigation();
+  // Initialize repository
   const repository = new Repository();
+
+  // Initialize state variables
   const [listOfTransactions, setListOfTransactions] = useState([]);
   const [loading, setLoading] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
   const [expandedCard, setExpandedCard] = useState(null); // State to manage expanded card
 
+  // Set navigation options
   useEffect(() => {
     navigation.setOptions({
       headerShown: true,
@@ -36,6 +42,8 @@ const History = () => {
       headerBackTitle: "Back", // Sets the back button label
     });
   }, [navigation]);
+
+  // Fetch settled transactions from Firestore
   async function fetchTransactions() {
     try {
       setLoading(true);
@@ -52,12 +60,14 @@ const History = () => {
     fetchTransactions();
   }, []);
 
+  // Handle refresh action
   const handleRefresh = async () => {
     setRefreshing(true);
     await fetchTransactions();
     setRefreshing(false);
   };
 
+  // Toggle card expansion
   const toggleExpand = (id) => {
     setExpandedCard(expandedCard === id ? null : id);
   };
@@ -113,6 +123,7 @@ const History = () => {
   );
 };
 
+// Styles
 const styles = StyleSheet.create({
   container: {
     flex: 1,

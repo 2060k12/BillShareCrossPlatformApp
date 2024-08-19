@@ -6,14 +6,15 @@ import {
   Text,
   View,
   ActivityIndicator,
+  Button,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { FilledButton, OutlinedButton } from "../components/Button";
 import * as InputField from "../components/InputField";
-import * as Notifications from "expo-notifications";
 import LoginRepository from "../data/LoginRepository";
 
 export default function RegisterScreen({ onPress }) {
+  // state of name, email, password, confirm password, phone number and loading
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -22,22 +23,26 @@ export default function RegisterScreen({ onPress }) {
   const [loading, setLoading] = useState(false);
   const repository = new LoginRepository();
 
+  // function to validate email
   function validateEmail(email) {
     const re = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     return re.test(String(email).toLowerCase());
   }
 
+  //  function to validate phone number
   function validatePhoneNumber(phoneNumber) {
     const re = /^0\d{9}$/;
     return re.test(phoneNumber);
   }
 
+  // function to register user
   function registerNow() {
     if (!validateEmail(email)) {
       Alert.alert("Invalid Email", "Please enter a valid email address.");
       return;
     }
 
+    // validate phone number
     if (!validatePhoneNumber(phoneNumber)) {
       Alert.alert(
         "Invalid Phone Number",
@@ -46,14 +51,16 @@ export default function RegisterScreen({ onPress }) {
       return;
     }
 
+    // check if password and confirm password match
     if (password !== confirmPassword) {
       Alert.alert("Password Mismatch", "Passwords do not match.");
       return;
     }
 
+    // set loading to true
     setLoading(true);
     repository.register(name, phoneNumber, email, password, (success) => {
-      setLoading(false);
+      setLoading(false); // set loading to false
       if (success) {
         onPress();
       } else {
@@ -69,10 +76,16 @@ export default function RegisterScreen({ onPress }) {
       presentationStyle="pageSheet"
       visible={true}
     >
-      <View style={styles.modelContainer}>
+      <SafeAreaView style={styles.modelContainer}>
         <View>
           <View style={styles.pageHeaderContainer}>
             <Text style={styles.pageHeader}>Register Now</Text>
+            <Button
+              onPress={() => {
+                onPress();
+              }}
+              title="Back"
+            />
           </View>
           <View>
             <InputField.default
@@ -119,7 +132,7 @@ export default function RegisterScreen({ onPress }) {
             </>
           )}
         </View>
-      </View>
+      </SafeAreaView>
     </Modal>
   );
 }
@@ -127,13 +140,12 @@ export default function RegisterScreen({ onPress }) {
 const styles = StyleSheet.create({
   modelContainer: {
     flex: 1,
-    backgroundColor: "#cccccc",
     flexDirection: "column",
     justifyContent: "space-between",
     padding: 16,
   },
   pageHeader: {
-    color: "white",
+    color: "black",
     fontSize: 24,
     fontWeight: "bold",
     textAlign: "center",
@@ -141,7 +153,8 @@ const styles = StyleSheet.create({
   pageHeaderContainer: {
     paddingVertical: 16,
     marginBottom: 16,
-    backgroundColor: "black",
+    flexDirection: "row",
+    justifyContent: "space-between",
     borderRadius: 5,
   },
 });

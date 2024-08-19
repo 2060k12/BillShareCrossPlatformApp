@@ -6,10 +6,12 @@ import { getAuth } from "firebase/auth";
 import { firebaseConfig } from "./../config/firebaseConfig";
 
 export default function _layout() {
+  // firebase auth
   const fbApp = initializeApp(firebaseConfig);
   const auth = getAuth(fbApp);
 
   return (
+    // Provide the auth context to the app
     <AuthContext.Provider value={auth}>
       <Stack
         screenOptions={{

@@ -58,12 +58,12 @@ export function PasswordField({ children, enteredText, onChangeText }) {
 
 const styles = StyleSheet.create({
   inputText: {
-    padding: 8,
+    padding: 16,
     fontSize: 20,
 
     marginVertical: 4,
     borderWidth: 1,
-    borderColor: "black",
+    borderColor: "#ccc",
     borderRadius: 5,
   },
 });

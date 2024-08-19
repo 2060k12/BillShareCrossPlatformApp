@@ -16,16 +16,23 @@ import { initializeApp } from "firebase/app";
 import { getAuth } from "firebase/auth";
 
 const HomePage = () => {
+  // Initialize Firebase app and auth
   const app = initializeApp(firebaseConfig);
   const auth = getAuth(app);
 
+  // Initialize router and Firestore context
   const router = useRouter();
   const db = useContext(FirestoreContext);
+
+  // Initialize repository
   const repository = new Repository(auth);
+
+  // Initialize state variables
   const [transactions, setTransactions] = useState([]);
   const [loading, setLoading] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
 
+  // Fetch transactions from Firestore
   async function fetchTransactions() {
     try {
       setLoading(true);
@@ -42,12 +49,14 @@ const HomePage = () => {
     fetchTransactions();
   }, []);
 
+  // Handle refresh action
   const handleRefresh = async () => {
     setRefreshing(true);
     await fetchTransactions();
     setRefreshing(false);
   };
 
+  // Handle navigation to transaction details screen
   const handleNavigate = (transaction) => {
     router.push({
       pathname: `/expensesDetails/${transaction.id}`,
@@ -57,6 +66,7 @@ const HomePage = () => {
     });
   };
 
+  // Render transaction card
   const renderItem = ({ item }) => (
     <Pressable
       style={[
@@ -92,11 +102,13 @@ const HomePage = () => {
     </Pressable>
   );
 
+  // Render footer
   const renderFooter = () => {
     if (!loading) return null;
     return <ActivityIndicator size="large" color="#0000ff" />;
   };
 
+  // Calculate total receive and pay amounts
   const calculateTotals = () => {
     let totalReceive = 0;
     let totalPay = 0;
@@ -130,6 +142,7 @@ const HomePage = () => {
 
 export default HomePage;
 
+// Styles
 const styles = StyleSheet.create({
   container: {
     flex: 1,

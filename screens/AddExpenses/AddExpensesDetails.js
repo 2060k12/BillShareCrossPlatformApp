@@ -1,10 +1,21 @@
 import { router, useNavigation } from "expo-router";
 import { useState, useEffect } from "react";
-import { GestureHandlerRootView } from "react-native-gesture-handler";
+import {
+  GestureHandlerRootView,
+  ScrollView,
+} from "react-native-gesture-handler";
 import { firebaseConfig } from "../../config/firebaseConfig";
 import { initializeApp } from "firebase/app";
 import { getAuth } from "firebase/auth";
-import { Button, View, Text, StyleSheet, Platform, Alert } from "react-native";
+import {
+  Button,
+  View,
+  Text,
+  StyleSheet,
+  Platform,
+  Alert,
+  KeyboardAvoidingView,
+} from "react-native";
 import InputField from "../../components/InputField";
 import Repository from "../../data/repository";
 import { useRoute } from "@react-navigation/native";
@@ -12,16 +23,22 @@ import * as Contacts from "expo-contacts";
 import { TextInput } from "react-native-gesture-handler";
 
 const AddExpensesDetails = () => {
+  // Initialize Firebase app and auth
   const app = initializeApp(firebaseConfig);
   const auth = getAuth(app);
 
+  // Initialize repository
   const repository = new Repository(auth);
+  // Initialize router
   const route = useRoute();
+  // Get selected contacts from route params
   const { contacts } = route.params || {};
+  // Parse selected contacts
   const selectedContactIds = contacts
     ? JSON.parse(decodeURIComponent(contacts))
     : [];
 
+  // Initialize state variables
   const [contactDetails, setContactDetails] = useState([]);
   const [amount, setAmount] = useState("");
   const [details, setDetails] = useState("");
@@ -86,7 +103,7 @@ const AddExpensesDetails = () => {
   }, []);
 
   const navigation = useNavigation();
-
+  // Set navigation options
   useEffect(() => {
     navigation.setOptions({
       headerShown: true,
@@ -95,97 +112,101 @@ const AddExpensesDetails = () => {
   }, []);
 
   return (
-    <GestureHandlerRootView
-      style={styles.scrollView}
-      behavior={Platform.OS === "ios" ? "padding" : "height"}
-    >
-      <View>
-        <Text>Enter Total Amount</Text>
-        <TextInput
-          style={styles.percentageInput}
-          value={amount}
-          onChangeText={setAmount}
-        />
-      </View>
-
-      <View>
-        <Text>Enter Expenses Details</Text>
-        <TextInput
-          style={styles.percentageInput}
-          value={details}
-          onChangeText={setDetails}
-        />
-      </View>
-
-      <View>
-        <Text>Involved People</Text>
-        {involvedPeople.map((person, index) => (
-          <View key={index} style={styles.contactContainer}>
-            <Text style={styles.contactName}>{person.name}</Text>
-            <Text style={styles.phoneNumber}>{person.phoneNumber}</Text>
-            <InputField
-              placeholder={"Percentage"}
-              keyboardType="numeric" // Ensure numeric input
-              onChangeText={(text) => {
-                const percentage = parseFloat(text) || 0; // Convert to number or default to 0 if NaN
-                const updatedPeople = [...involvedPeople];
-
-                // Subtract old percentage and add the new one
-                const oldPercentage = updatedPeople[index].percentage || 0;
-                updatedPeople[index].percentage = percentage;
-                setInvolvedPeople(updatedPeople);
-                setTotalPercentage(
-                  totalPercentage - oldPercentage + percentage
-                );
-              }}
+    // Add KeyboardAvoidingView to handle keyboard
+    <KeyboardAvoidingView>
+      <GestureHandlerRootView
+        style={styles.scrollView}
+        behavior={Platform.OS === "ios" ? "padding" : "height"}
+      >
+        <ScrollView>
+          <View>
+            <TextInput
+              style={styles.percentageInput}
+              value={amount}
+              onChangeText={setAmount}
+              placeholder="Total Amount"
             />
           </View>
-        ))}
-      </View>
 
-      <Button
-        title="Dubug"
-        onPress={() => {
-          console.log("involvedPeople", involvedPeople);
-        }}
-      />
-      <Button
-        title="Add Expenses"
-        onPress={() => {
-          if (!amount || !details) {
-            Alert.alert("Error", "Please enter amount and details");
-            return;
-          }
+          <View>
+            <TextInput
+              style={styles.multiline}
+              value={details}
+              onChangeText={setDetails}
+              multiline={true}
+              placeholder="Expenses Details"
+            />
+          </View>
 
-          if (totalPercentage !== 100) {
-            Alert.alert("Error", "Total percentage should be 100");
-            return;
-          }
+          <View>
+            <Text style={{ fontSize: 24, fontWeight: "bold", paddingLeft: 10 }}>
+              Involved People
+            </Text>
+            {involvedPeople.map((person, index) => (
+              <View key={index} style={styles.contactContainer}>
+                <Text style={styles.contactName}>{person.name}</Text>
+                <Text style={styles.phoneNumber}>{person.phoneNumber}</Text>
+                <InputField
+                  placeholder={"Percentage"}
+                  keyboardType="numeric" // Ensure numeric input
+                  onChangeText={(text) => {
+                    const percentage = parseFloat(text) || 0; // Convert to number or default to 0 if NaN
+                    const updatedPeople = [...involvedPeople];
 
-          const expenseData = {
-            amount: parseFloat(amount),
-            details,
-            involvedPeople,
-          };
+                    // Subtract old percentage and add the new one
+                    const oldPercentage = updatedPeople[index].percentage || 0;
+                    updatedPeople[index].percentage = percentage;
+                    setInvolvedPeople(updatedPeople);
+                    setTotalPercentage(
+                      totalPercentage - oldPercentage + percentage
+                    );
+                  }}
+                >
+                  Enter Percentage Share
+                </InputField>
+              </View>
+            ))}
+          </View>
+          <Button
+            title="Add Expenses"
+            onPress={() => {
+              if (!amount || !details) {
+                Alert.alert("Error", "Please enter amount and details");
+                return;
+              }
 
-          repository.addExpense(expenseData, (success) => {
-            if (success) {
-              Alert.alert("Success", "Expense added successfully", [
-                {
-                  text: "OK",
-                  onPress: () => router.replace("/(tabs)"),
-                },
-              ]);
-            } else {
-              Alert.alert("Error", "Failed to add expense");
-            }
-          });
-        }}
-      />
-    </GestureHandlerRootView>
+              if (totalPercentage !== 100) {
+                Alert.alert("Error", "Total percentage should be 100");
+                return;
+              }
+
+              const expenseData = {
+                amount: parseFloat(amount),
+                details,
+                involvedPeople,
+              };
+
+              repository.addExpense(expenseData, (success) => {
+                if (success) {
+                  Alert.alert("Success", "Expense added successfully", [
+                    {
+                      text: "OK",
+                      onPress: () => router.replace("/(tabs)"),
+                    },
+                  ]);
+                } else {
+                  Alert.alert("Error", "Failed to add expense");
+                }
+              });
+            }}
+          />
+        </ScrollView>
+      </GestureHandlerRootView>
+    </KeyboardAvoidingView>
   );
 };
 
+// Styles
 const styles = StyleSheet.create({
   button: {},
 
@@ -216,16 +237,29 @@ const styles = StyleSheet.create({
   },
   percentageInput: {
     marginTop: 10,
+
+    margin: 10,
     borderWidth: 1,
     borderColor: "#ccc",
     borderRadius: 4,
-    padding: 8,
-    fontSize: 16,
+    padding: 16,
+    fontSize: 20,
   },
   loadingContainer: {
     flex: 1,
     justifyContent: "center",
     alignItems: "center",
+  },
+
+  multiline: {
+    marginTop: 10,
+    height: 100,
+    borderWidth: 1,
+    borderColor: "#ccc",
+    borderRadius: 4,
+    padding: 8,
+    margin: 10,
+    fontSize: 20,
   },
 });
 

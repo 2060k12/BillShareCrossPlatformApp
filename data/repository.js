@@ -116,6 +116,7 @@ class Repository {
     }
   }
 
+  // Method to get all settled transactions of a user
   async getSettledTransactions() {
     try {
       const dbRef = await getDocs(
@@ -171,6 +172,7 @@ class Repository {
     }
   }
 
+  // Method to get transaction details
   async getTransactionDetails(id, success) {
     try {
       const dbRef = doc(this.db, "expenses", id);
@@ -407,11 +409,13 @@ class Repository {
     }
   }
 
+  // get uyser details
   async getUserDetails(userId) {
     const userDoc = await getDoc(doc(this.db, "Users", userId));
     return userDoc.exists() ? userDoc.data() : null;
   }
 
+  // upload profile of the user
   async uploadProfileImage(userId, imageUri) {
     const response = await fetch(imageUri);
     const blob = await response.blob();
@@ -420,6 +424,7 @@ class Repository {
     return await getDownloadURL(storageRef);
   }
 
+  // update user profile
   async updateUserProfile(userId, updates) {
     try {
       const docRef = doc(this.db, "Users", userId);
@@ -429,13 +434,13 @@ class Repository {
     }
   }
 
+  // get current users
   async getCurrentUser() {
     try {
       // Get current user from Auth
       const currentUser = this.auth.currentUser;
 
       if (currentUser) {
-        // Reference to the user's document in Firestore
         const userDocRef = doc(
           this.db,
           "Users",
@@ -446,7 +451,6 @@ class Repository {
         const userDoc = await getDoc(userDocRef);
 
         if (userDoc.exists()) {
-          // Extract the phone field and name from the document
           const userData = userDoc.data();
           return {
             name: userData.name,
@@ -486,17 +490,19 @@ class Repository {
     );
 
     try {
-      const userRef = doc(
-        this.db,
-        "Users",
-        this.auth.currentUser.displayName,
-        "transactions",
-        id
-      );
+      initialPeoples.forEach(async (person) => {
+        const userRef = doc(
+          this.db,
+          "Users",
+          this.formatPhoneNumber(person),
+          "transactions",
+          id
+        );
 
-      await updateDoc(userRef, {
-        totalAmount: amount,
-        details: details,
+        await updateDoc(userRef, {
+          totalAmount: amount,
+          details: details,
+        });
       });
 
       const expensesRef = doc(this.db, "expenses", id);

@@ -19,14 +19,17 @@ import { initializeApp } from "firebase/app";
 import { getAuth } from "firebase/auth";
 
 const ExpensesDetailScreen = () => {
+  // Initialize Firebase app and auth
   const app = initializeApp(firebaseConfig);
   const auth = getAuth(app);
 
+  //  Initialize router and local search params
   const router = useRouter();
   const nav = useNavigation();
   const { id, transaction } = useLocalSearchParams();
   const parsedTransaction = JSON.parse(transaction);
 
+  // Function to calculate total percentage
   const calculateTotalPercentage = (people) => {
     return people.reduce(
       (total, person) => total + (parseFloat(person.percentage) || 0),
@@ -34,6 +37,7 @@ const ExpensesDetailScreen = () => {
     );
   };
 
+  // Initialize state variables
   const [editMode, setEditMode] = useState(false);
   const [amount, setAmount] = useState(parsedTransaction.totalAmount);
   const [transactionsFullInfo, setTransactionsFullInfo] = useState(null);
@@ -42,6 +46,7 @@ const ExpensesDetailScreen = () => {
   const [newPercentage, setNewPercentage] = useState("");
   const repository = new Repository(auth);
 
+  //  Function to remove a person from the transaction
   const handleRemovePerson = (phoneNumber) => {
     const updatedInvolvedPeople = transactionsFullInfo.involvedPeople.filter(
       (person) => person.phoneNumber !== phoneNumber
@@ -52,6 +57,7 @@ const ExpensesDetailScreen = () => {
     }));
   };
 
+  // Fetch transaction details
   useEffect(() => {
     repository.getTransactionDetails(id, (transaction) => {
       if (transaction) {
@@ -65,13 +71,19 @@ const ExpensesDetailScreen = () => {
 
   const [myAmount, setMyAmount] = useState(0);
 
+  // Calculate the amount that the current user owes
   useEffect(() => {
-    if (transactionsFullInfo?.involvedPeople && auth?.currentUser?.displ) {
+    if (
+      transactionsFullInfo?.involvedPeople &&
+      auth?.currentUser?.displayName
+    ) {
       setAmount(transactionsFullInfo.amount);
       const currentUser = transactionsFullInfo.involvedPeople.find(
         (person) => person.phoneNumber === auth.currentUser.displayName
       );
 
+      console.log("currentUser", currentUser);
+      console.log("transactionsFullInfo", transactionsFullInfo);
       if (currentUser) {
         setMyAmount(
           (currentUser.percentage * transactionsFullInfo.amount) / 100
@@ -80,6 +92,7 @@ const ExpensesDetailScreen = () => {
     }
   }, [transactionsFullInfo, auth?.currentUser?.userName]);
 
+  // Set navigation options
   nav.setOptions({
     headerShown: true,
     title: "Transaction Details",
@@ -89,6 +102,7 @@ const ExpensesDetailScreen = () => {
     ),
   });
 
+  // Function to save changes to a person's percentage
   const handleSavePersonChanges = () => {
     if (editPerson && newPercentage) {
       const updatedInvolvedPeople = transactionsFullInfo.involvedPeople.map(
@@ -239,6 +253,7 @@ const ExpensesDetailScreen = () => {
         </OutlinedButton>
       </View>
 
+      {/* Modal fo when edit option is clicked */}
       <Modal
         presentationStyle="pageSheet"
         animationType="slide"
@@ -364,6 +379,7 @@ const ExpensesDetailScreen = () => {
 
 export default ExpensesDetailScreen;
 
+// Styles
 const styles = StyleSheet.create({
   screenContainer: {
     flex: 1,
