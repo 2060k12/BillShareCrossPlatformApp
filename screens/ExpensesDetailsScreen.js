@@ -13,7 +13,7 @@ import { useRouter, useLocalSearchParams, useNavigation } from "expo-router";
 import Repository from "../data/repository";
 import * as InputField from "../components/InputField";
 import { FilledButton, OutlinedButton } from "../components/Button";
-import { format } from "date-fns";
+import { format, set } from "date-fns";
 import { firebaseConfig } from "../config/firebaseConfig";
 import { initializeApp } from "firebase/app";
 import { getAuth } from "firebase/auth";
@@ -35,8 +35,9 @@ const ExpensesDetailScreen = () => {
   };
 
   const [editMode, setEditMode] = useState(false);
-  const [amount, setAmount] = useState(parsedTransaction.amount);
+  const [amount, setAmount] = useState(parsedTransaction.totalAmount);
   const [transactionsFullInfo, setTransactionsFullInfo] = useState(null);
+  const [initiallyInvolvedPeople, setInitiallyInvolvedPeople] = useState([]);
   const [editPerson, setEditPerson] = useState(null);
   const [newPercentage, setNewPercentage] = useState("");
   const repository = new Repository(auth);
@@ -55,11 +56,29 @@ const ExpensesDetailScreen = () => {
     repository.getTransactionDetails(id, (transaction) => {
       if (transaction) {
         setTransactionsFullInfo(transaction);
+        setInitiallyInvolvedPeople(transaction.involvedPeople);
       } else {
         Alert.alert("Error", "Transaction details could not be fetched.");
       }
     });
   }, [id]);
+
+  const [myAmount, setMyAmount] = useState(0);
+
+  useEffect(() => {
+    if (transactionsFullInfo?.involvedPeople && auth?.currentUser?.displ) {
+      setAmount(transactionsFullInfo.amount);
+      const currentUser = transactionsFullInfo.involvedPeople.find(
+        (person) => person.phoneNumber === auth.currentUser.displayName
+      );
+
+      if (currentUser) {
+        setMyAmount(
+          (currentUser.percentage * transactionsFullInfo.amount) / 100
+        );
+      }
+    }
+  }, [transactionsFullInfo, auth?.currentUser?.userName]);
 
   nav.setOptions({
     headerShown: true,
@@ -102,6 +121,10 @@ const ExpensesDetailScreen = () => {
     ? format(new Date(parsedTransaction.timeStamp.seconds * 1000), "PPpp")
     : "Unknown";
 
+  const isPayedBy = (phoneNumber) => {
+    return transactionsFullInfo?.payedBy.includes(phoneNumber);
+  };
+
   return (
     <SafeAreaView style={styles.screenContainer}>
       <View style={styles.card}>
@@ -120,9 +143,7 @@ const ExpensesDetailScreen = () => {
           )}
           <Text style={styles.iOweText}>
             {totalPercentage === 100
-              ? `What I Owe: AU$${parseFloat(parsedTransaction.amount).toFixed(
-                  2
-                )}`
+              ? `What I Owe: AU$${parseFloat(myAmount).toFixed(2)}`
               : "Please correct the percentages"}
           </Text>
         </View>
@@ -132,15 +153,34 @@ const ExpensesDetailScreen = () => {
         </View>
       </View>
 
+      <View>
+        <Text>Payed By</Text>
+        <Text style={styles.personName}>{transactionsFullInfo?.payedBy}</Text>
+      </View>
+
       <View style={styles.involvedPeopleContainer}>
         <Text style={styles.titleText}>Involved People</Text>
         <FlatList
           data={transactionsFullInfo?.involvedPeople || []}
           renderItem={({ item }) => (
-            <View style={styles.personContainer}>
-              <Text style={styles.personName}>{item.name}</Text>
-              <Text style={styles.personPhone}>{item.phoneNumber}</Text>
-              <Text style={styles.personPercentage}>{item.percentage}%</Text>
+            <View
+              style={[
+                styles.personContainer,
+                isPayedBy(item.phoneNumber)
+                  ? styles.greenLight
+                  : styles.redLight,
+              ]}
+            >
+              <View style={styles.personContainer}>
+                <Text style={styles.personName}>{item.name}</Text>
+                <Text style={styles.personPhone}>{item.phoneNumber}</Text>
+              </View>
+              <View style={styles.personContainer}>
+                <Text style={styles.personPercentage}>{item.percentage}%</Text>
+                <Text style={styles.personPercentage}>
+                  {(item.percentage * transactionsFullInfo.amount) / 100}
+                </Text>
+              </View>
               {editMode && (
                 <View style={styles.personActions}>
                   <Button
@@ -158,7 +198,6 @@ const ExpensesDetailScreen = () => {
               )}
             </View>
           )}
-          keyExtractor={(item) => item.phoneNumber}
         />
       </View>
 
@@ -166,12 +205,16 @@ const ExpensesDetailScreen = () => {
         <FilledButton
           style={styles.settleButton}
           onPress={() => {
-            repository.settleTransaction(parsedTransaction.id, (success) => {
-              if (success) {
-                Alert.alert("Successfully Settled.");
-                router.push("/(tabs)");
+            repository.settleTransaction(
+              parsedTransaction.id,
+              transactionsFullInfo.involvedPeople,
+              (success) => {
+                if (success) {
+                  Alert.alert("Successfully Settled.");
+                  router.push("/(tabs)");
+                }
               }
-            });
+            );
           }}
         >
           Settle Up
@@ -179,8 +222,10 @@ const ExpensesDetailScreen = () => {
         <OutlinedButton
           onPress={() => {
             repository.removeTransaction(
+              amount,
               parsedTransaction.status,
               parsedTransaction.id,
+              transactionsFullInfo.involvedPeople,
               (success) => {
                 if (success) {
                   router.push("/(tabs)");
@@ -221,7 +266,11 @@ const ExpensesDetailScreen = () => {
                   <Text style={styles.personName}>{item.name}</Text>
                   <Text style={styles.personPhone}>{item.phoneNumber}</Text>
                 </View>
+
                 <Text style={styles.personPercentage}>{item.percentage}%</Text>
+                <Text style={styles.personPercentage}>
+                  {(item.percentage * transactionsFullInfo.amount) / 100}
+                </Text>
                 {editMode && (
                   <View style={styles.personActions}>
                     <Button
@@ -269,10 +318,19 @@ const ExpensesDetailScreen = () => {
             <View style={styles.modalButtons}>
               <FilledButton
                 onPress={() => {
-                  repository.updateTransaction(
+                  if (totalPercentage !== 100) {
+                    return Alert.alert(
+                      "Error",
+                      "Total percentage should be 100"
+                    );
+                  }
+
+                  repository.updateTransactions(
                     id,
                     amount,
+                    (details = "New Details"),
                     transactionsFullInfo.involvedPeople,
+                    initiallyInvolvedPeople,
                     (success) => {
                       if (success) {
                         setEditMode(false);
@@ -425,7 +483,7 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   modalButtons: {
-    flexDirection: "row",
+    flexDirection: "column",
     justifyContent: "space-between",
     marginTop: 16,
   },
@@ -478,7 +536,29 @@ const styles = StyleSheet.create({
     marginRight: 8,
     padding: 4,
   },
+  greenLight: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    borderRadius: 8,
+    padding: 16,
+    marginVertical: 4,
+    backgroundColor: "rgba(0, 255, 0, 0.1)", // Green with 10% opacity
+  },
 
+  percentContainer: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+  },
+
+  redLight: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    borderRadius: 8,
+    padding: 16,
+    marginVertical: 4,
+    backgroundColor: "rgba(255, 0, 0, 0.1)", // Red with 10% opacity
+  },
   personActions: {
     flexDirection: "row",
     justifyContent: "space-between",

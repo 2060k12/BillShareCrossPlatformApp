@@ -82,9 +82,11 @@ const HomePage = () => {
           />
         )}
         <View style={styles.textContainer}>
-          <Text style={styles.transactionText}>{item.title}</Text>
-          <Text style={styles.transactionText}>{item.title}</Text>
-          <Text style={styles.transactionAmount}>${item.amount}</Text>
+          <Text style={styles.transactionAmount}>
+            {item.status === "receive" ? "Receive: " : "Pay: "}AU${" "}
+            {item.totalAmount}
+          </Text>
+          <Text style={styles.transactionDate}>{item.date}</Text>
         </View>
       </View>
     </Pressable>
@@ -94,6 +96,21 @@ const HomePage = () => {
     if (!loading) return null;
     return <ActivityIndicator size="large" color="#0000ff" />;
   };
+
+  const calculateTotals = () => {
+    let totalReceive = 0;
+    let totalPay = 0;
+    transactions.forEach((item) => {
+      if (item.status === "receive") {
+        totalReceive += item.totalAmount;
+      } else {
+        totalPay += item.totalAmount;
+      }
+    });
+    return { totalReceive, totalPay };
+  };
+
+  const { totalReceive, totalPay } = calculateTotals();
 
   return (
     <View style={styles.container}>
@@ -153,14 +170,15 @@ const styles = StyleSheet.create({
   textContainer: {
     flex: 1,
     marginLeft: 12,
+    flexDirection: "row",
+    justifyContent: "space-between",
   },
-  transactionText: {
+  transactionAmount: {
     fontSize: 18,
     color: "#333",
   },
-  transactionAmount: {
+  transactionDate: {
     fontSize: 16,
-    marginTop: 4,
     color: "#555",
   },
   icon: {

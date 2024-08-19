@@ -66,7 +66,7 @@ const History = () => {
     const date = item.timeStamp.toDate(); // Convert Firebase timestamp to Date
     const formattedDate = date.toLocaleString(); // Format the date
     const isExpanded = expandedCard === item.id;
-    const borderColor = item.status === "settled" ? "green" : "red";
+    const borderColor = item.status === "pay" ? "green" : "red";
 
     return (
       <Pressable onPress={() => toggleExpand(item.id)}>

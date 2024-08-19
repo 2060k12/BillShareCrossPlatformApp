@@ -4,44 +4,57 @@ import MaterialIcons from "@expo/vector-icons/MaterialIcons";
 import Repository from "../data/repository";
 import { useRouter } from "expo-router";
 import { useFocusEffect } from "@react-navigation/native";
-import { firebaseConfig } from "../config/firebaseConfig";
-import { initializeApp } from "firebase/app";
-import { getAuth } from "firebase/auth";
+import { Notifications } from "../data/Notifications";
 
 const NotificationsScreen = () => {
-  const app = initializeApp(firebaseConfig);
-  const auth = getAuth(app);
-
-  const [transactions, setTransactions] = useState([]);
-  const repository = new Repository(auth);
+  const [notifications, setNotifications] = useState([]);
+  const repository = new Repository();
   const router = useRouter();
 
-  const fetchTransactions = async () => {
+  // Fetch notifications using the provided getNotifications method
+  const fetchNotifications = async () => {
     try {
-      await repository.getAllTransactions();
-      setTransactions(repository.listOfTransactions);
+      repository.getNotifications((fetchedNotifications) => {
+        const formattedNotifications = fetchedNotifications.map(
+          (notification) =>
+            new Notifications(
+              notification.amount,
+              notification.body,
+              notification.docId,
+              notification.timestamp.toDate(), // Convert Firestore timestamp to Date object
+              notification.title
+            )
+        );
+
+        // Sort notifications by timestamp in descending order
+        const sortedNotifications = formattedNotifications.sort(
+          (a, b) => b.timestamp - a.timestamp
+        );
+
+        setNotifications(sortedNotifications);
+      });
     } catch (error) {
-      console.error("Error fetching transactions:", error);
+      console.error("Error fetching notifications:", error);
     }
   };
 
   useEffect(() => {
-    fetchTransactions();
+    fetchNotifications();
   }, []);
 
   useFocusEffect(
     useCallback(() => {
-      fetchTransactions();
+      fetchNotifications();
     }, [])
   );
 
-  const handleNotificationPress = (transaction) => {
-    router.push({
-      pathname: `/expensesDetails/${transaction.id}`,
-      params: {
-        transaction: JSON.stringify(transaction), // Pass as JSON string
-      },
-    });
+  const handleNotificationPress = (notification) => {
+    // router.push({
+    //   pathname: `/expensesDetails/${notification.docId}`,
+    //   params: {
+    //     notification: JSON.stringify(notification), // Pass as JSON string
+    //   },
+    // });
   };
 
   const renderNotification = ({ item }) => (
@@ -51,21 +64,22 @@ const NotificationsScreen = () => {
     >
       <MaterialIcons name="notifications" size={24} color="black" />
       <View style={styles.notificationContent}>
-        <Text style={styles.notificationTitle}>
-          {item.status === "receive" ? "You will receive" : "You need to pay"}:{" "}
-          {item.title}
-        </Text>
-        <Text style={styles.notificationDescription}>{item.description}</Text>
-        <Text style={styles.notificationAmount}>
-          Amount: ${item.amount.toFixed(2)}
-        </Text>
-        <Text style={styles.notificationTimestamp}>
-          {new Date(item.timestamp).toLocaleDateString("en-US", {
-            year: "numeric",
-            month: "long",
-            day: "numeric",
-          })}
-        </Text>
+        <View style={styles.notificationText}>
+          <Text style={styles.notificationTitle}>{item.title}</Text>
+          <Text style={styles.notificationDescription}>{item.body}</Text>
+        </View>
+        <View style={styles.notificationText}>
+          <Text style={styles.notificationAmount}>
+            ${item.amount.toFixed(2)}
+          </Text>
+          <Text style={styles.notificationTimestamp}>
+            {item.timestamp.toLocaleDateString("en-US", {
+              year: "numeric",
+              month: "long",
+              day: "numeric",
+            })}
+          </Text>
+        </View>
       </View>
     </Pressable>
   );
@@ -74,8 +88,8 @@ const NotificationsScreen = () => {
     <View style={styles.container}>
       <Text style={styles.header}>Notifications</Text>
       <FlatList
-        data={transactions}
-        keyExtractor={(item) => item.id}
+        data={notifications}
+        keyExtractor={(item) => item.docId}
         renderItem={renderNotification}
         contentContainerStyle={styles.list}
       />
@@ -86,6 +100,7 @@ const NotificationsScreen = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+
     padding: 16,
     backgroundColor: "#f8f8f8",
   },
@@ -99,31 +114,36 @@ const styles = StyleSheet.create({
   },
   notificationItem: {
     flexDirection: "row",
-    alignItems: "center",
+    alignItems: "flex-start",
     padding: 16,
     backgroundColor: "#fff",
     borderRadius: 8,
     elevation: 2,
-    marginBottom: 16, // Increased vertical spacing
+    marginBottom: 16,
   },
   notificationContent: {
+    flexDirection: "row",
+    justifyContent: "space-between",
     marginLeft: 16,
     flex: 1,
+  },
+  notificationText: {
+    flexDirection: "column",
   },
   notificationTitle: {
     fontSize: 16,
     fontWeight: "bold",
-    marginBottom: 4, // Added vertical spacing
+    marginBottom: 4,
   },
   notificationDescription: {
     fontSize: 14,
     color: "#666",
-    marginBottom: 4, // Added vertical spacing
+    marginBottom: 4,
   },
   notificationAmount: {
-    fontSize: 14,
+    fontSize: 20,
     color: "#333",
-    marginBottom: 4, // Added vertical spacing
+    marginBottom: 4,
   },
   notificationTimestamp: {
     fontSize: 12,

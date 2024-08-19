@@ -173,7 +173,7 @@ const AddExpensesDetails = () => {
               Alert.alert("Success", "Expense added successfully", [
                 {
                   text: "OK",
-                  onPress: () => router.push("/(tabs)"),
+                  onPress: () => router.replace("/(tabs)"),
                 },
               ]);
             } else {

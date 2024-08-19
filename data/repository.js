@@ -11,6 +11,7 @@ import {
   getDoc,
   getDocs,
   updateDoc,
+  arrayUnion,
 } from "firebase/firestore";
 import { getStorage, ref, uploadBytes, getDownloadURL } from "firebase/storage";
 import {
@@ -19,6 +20,7 @@ import {
   DetailTransaction,
 } from "../data/Transactions";
 import { ca } from "date-fns/locale";
+import { add } from "date-fns";
 class Repository {
   constructor(auth) {
     // Initialize Firebase app
@@ -36,6 +38,25 @@ class Repository {
     this.listOfSettledTransactions = [];
   }
 
+  formatPhoneNumber(user) {
+    let phone = user.toString().trim();
+
+    // Remove all spaces
+    phone = phone.replace(/\s+/g, "");
+
+    // Replace +61 with 0
+    if (phone.startsWith("+61")) {
+      phone = phone.replace("+61", "0");
+    }
+
+    // Ensure the phone number starts with 0
+    if (!phone.startsWith("0")) {
+      phone = "0" + phone;
+    }
+
+    return phone;
+  }
+
   // Method to add expenses
   async addExpense(expenseData, success) {
     try {
@@ -43,17 +64,18 @@ class Repository {
         amount: expenseData.amount,
         details: expenseData.details,
         involvedPeople: expenseData.involvedPeople,
-        status: "pending",
+        payedBy: arrayUnion(this.auth.currentUser.displayName),
       });
       console.log(dbRef.id);
 
       // add this in the transaction of the user
       for (let i = 0; i < expenseData.involvedPeople.length; i++) {
         const user = expenseData.involvedPeople[i];
+
         const userDocRef = doc(
           this.db,
           "Users",
-          user.phoneNumber,
+          this.formatPhoneNumber(user.phoneNumber),
           "transactions",
           dbRef.id
         );
@@ -76,6 +98,14 @@ class Repository {
             details: expenseData.details,
             addedBy: this.auth.currentUser.displayName,
           });
+
+          this.addNotificationToDatabase(
+            this.formatPhoneNumber(user.phoneNumber),
+            "New Expense",
+            "New Expense Added",
+            expenseData.amount,
+            userDocRef.id
+          );
         }
       }
 
@@ -99,7 +129,6 @@ class Repository {
       dbRef.forEach((doc) => {
         const transaction = new Transaction(
           doc.data().totalAmount,
-          doc.data().amount,
           doc.data().timeStamp,
           doc.data().status,
           doc.id,
@@ -128,7 +157,6 @@ class Repository {
       dbRef.forEach((doc) => {
         const transaction = new Transaction(
           doc.data().totalAmount,
-          doc.data().amount,
           doc.data().timeStamp,
           doc.data().status,
           doc.id,
@@ -156,7 +184,7 @@ class Repository {
           (person) =>
             new InvolvedPerson(
               person.name,
-              person.phoneNumber,
+              this.formatPhoneNumber(person.phoneNumber),
               person.percentage
             )
         );
@@ -165,7 +193,8 @@ class Repository {
         const detailTransaction = new DetailTransaction(
           data.amount,
           data.details,
-          involvedPeople
+          involvedPeople,
+          data.payedBy
         );
 
         success(detailTransaction);
@@ -189,7 +218,7 @@ class Repository {
           doc.id,
           doc.data().name,
           doc.data().email,
-          doc.data().phoneNumber,
+          this.formatPhoneNumber(doc.data().phoneNumber),
           doc.data().imageUrl
         );
         tempArr.push(user);
@@ -202,7 +231,15 @@ class Repository {
   }
 
   // settle transactions
-  async settleTransaction(id, success) {
+  async settleTransaction(id, involvedPeople, success) {
+    involvedPeople.forEach((people) => {
+      if (people.phoneNumber === this.auth.currentUser.displayName.toString()) {
+        people.status = "payed";
+      }
+    });
+    console.log(this.auth.currentUser.displayName);
+    console.log("involvedPeople", involvedPeople);
+
     try {
       const dbRef = doc(
         this.db,
@@ -218,13 +255,15 @@ class Repository {
         "settledTransactions",
         id
       );
-      const dbRefData = await getDoc(dbRef);
 
+      const dbRefData = await getDoc(dbRef);
       await setDoc(newRef, dbRefData.data());
       await deleteDoc(dbRef);
 
       const expensesRef = doc(this.db, "expenses", id);
-      await updateDoc(expensesRef, { status: "settled" });
+      await updateDoc(expensesRef, {
+        payedBy: arrayUnion(this.auth.currentUser.displayName),
+      });
 
       success(true);
     } catch (error) {
@@ -234,18 +273,37 @@ class Repository {
   }
 
   // remove transaction
-  async removeTransaction(type, id, success) {
+  async removeTransaction(amount, type, id, peoples, success) {
     try {
-      console.log(this.auth?.currentUser?.phoneNumber);
+      console.log(amount);
 
-      const docRef = doc(
-        this.db,
-        "Users",
-        this.auth.currentUser.displayName,
-        "transactions",
-        id
-      );
-      await deleteDoc(docRef);
+      // people's phone into array to remove the transaction from their document
+      names = peoples.map((person) => person.name);
+      for (let i = 0; i < peoples.length; i++) {
+        if (peoples[i].phoneNumber === this.auth.currentUser.displayName) {
+          names.splice(i, 1);
+        }
+      }
+      name = names.join(", ");
+
+      peoples.forEach(async (person) => {
+        const personRef = doc(
+          this.db,
+          "Users",
+          this.formatPhoneNumber(person.phoneNumber),
+          "transactions",
+          id
+        );
+        await deleteDoc(personRef);
+
+        this.addNotificationToDatabase(
+          this.formatPhoneNumber(person.phoneNumber),
+          name,
+          "Transaction Deleted",
+          amount ? amount : 0,
+          ""
+        );
+      });
 
       const expensesRef = doc(this.db, "expenses", id);
       await deleteDoc(expensesRef);
@@ -311,6 +369,44 @@ class Repository {
     }
   }
 
+  // add notification to the firestore database
+  // Notification will be added inside the user's document
+  // As a collection name "notification"
+  async addNotificationToDatabase(id, title, body, amount, docId) {
+    const dbRef = await addDoc(
+      collection(this.db, "Users", id, "notification"),
+      {
+        title: title,
+        body: body,
+        amount: amount,
+        timestamp: new Date(),
+        docId: docId,
+      }
+    );
+    console.log("Document written with ID: ", dbRef.id);
+  }
+
+  // get all notifications of a user
+
+  async getNotifications(success) {
+    try {
+      const dbRef = collection(
+        this.db,
+        "Users",
+        this.auth.currentUser.displayName,
+        "notification"
+      );
+      const querySnapshot = await getDocs(dbRef);
+      const tempArr = [];
+      querySnapshot.forEach((doc) => {
+        tempArr.push(doc.data());
+      });
+      success(tempArr);
+    } catch (error) {
+      console.log(error);
+    }
+  }
+
   async getUserDetails(userId) {
     const userDoc = await getDoc(doc(this.db, "Users", userId));
     return userDoc.exists() ? userDoc.data() : null;
@@ -367,6 +463,65 @@ class Repository {
     } catch (error) {
       console.error("Error getting document:", error);
       return null;
+    }
+  }
+
+  // Update transactions
+  async updateTransactions(
+    id,
+    amount,
+    details,
+    involvedPeople,
+    initiallyInvolvedPeople,
+    success
+  ) {
+    const peoples = involvedPeople.map((person) => ({
+      name: person.name,
+      percentage: person.percentage,
+      phoneNumber: this.formatPhoneNumber(person.phoneNumber),
+    }));
+
+    const initialPeoples = initiallyInvolvedPeople.map(
+      (person) => person.phoneNumber
+    );
+
+    try {
+      const userRef = doc(
+        this.db,
+        "Users",
+        this.auth.currentUser.displayName,
+        "transactions",
+        id
+      );
+
+      await updateDoc(userRef, {
+        totalAmount: amount,
+        details: details,
+      });
+
+      const expensesRef = doc(this.db, "expenses", id);
+
+      await updateDoc(expensesRef, {
+        amount: amount,
+        details: details,
+        involvedPeople: peoples,
+      });
+
+      initialPeoples.forEach(async (person) => {
+        if (
+          !peoples.find(
+            (involvedPerson) => involvedPerson.phoneNumber === person
+          )
+        ) {
+          const personRef = doc(this.db, "Users", person, "transactions", id);
+          await deleteDoc(personRef);
+        }
+      });
+
+      success(true);
+    } catch (error) {
+      success(false);
+      console.error("Error updating transactions: ", error);
     }
   }
 }
